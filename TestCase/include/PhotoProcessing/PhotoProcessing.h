@@ -54,7 +54,7 @@ public slots:
     /// \param savePath - Путь по которому будет сохранено изменное изображение
     /// \param contrast - Параметр контрастности, на которое будет увеличена сама яркость. От -127 до 127.
     ///
-    void processContrast(QString tmpImagePath, const QString &savePath, const qint8 contrast);
+    void processContrast(QString tmpImagePath, const QString& savePath, const qint8 contrast);
 
     ///
     /// \brief processBrightness - Функция изменяет яркость изображение.
@@ -62,7 +62,7 @@ public slots:
     /// \param savePath - Путь по которому будет сохранено изменное изображение.
     /// \param brightness - Параметр яркости, на которое будет увеличена сама яркость. От 0.0 до 2.0.
     ///
-    void processBrightness(QString tmpImagePath, const QString &savePath, const float brightness);
+    void processBrightness(QString tmpImagePath, const QString& savePath, const float brightness);
 
     ///
     /// \brief processRotate - Функция делает разворот изображения на 90 градусов.
@@ -73,8 +73,8 @@ public slots:
     ///
     /// \brief saveFile - Функция сохраняет файл по новому пути.
     /// \param imagePath - Старый путь файла.
-    /// \param newImagePath - Новый путь файла
-    /// \return
+    /// \param newImagePath - Новый путь файла.
+    /// \return Возвращает 'true' в случае успеха, в ином случае 'false'.
     ///
     inline bool saveFile(QString imagePath, QString newImagePath)
     {
@@ -122,7 +122,7 @@ private:
     /// \param value - Значение RGB.
     /// \return Если значение превышает максимальное значение одного из цветов, то функция вернет '255', если же значение меньше, то '0'.
     ///
-    size_t truncatePixelValue(const size_t value)
+    static size_t truncatePixelValue(const size_t value)
     {
         if (value == 0) {
             return 0;

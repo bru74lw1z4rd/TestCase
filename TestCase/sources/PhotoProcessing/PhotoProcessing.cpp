@@ -117,36 +117,34 @@ void PhotoProcessing::processHue(QString imagePath, const quint8 hue)
 void PhotoProcessing::processContrast(QString tmpImagePath, const QString& savePath, const qint8 contrast)
 {
     if (!tmpImagePath.remove("file://").isEmpty()) {
-        QtConcurrent::run([=]() { /// TODO: реализовать команду.
-            QImage image(tmpImagePath);
+        QImage image(tmpImagePath);
 
-            /*
-             * Высчитываем коэффициент коррекции контраста по формуле: (259 * (C + 255)) / (255 * (259 - C))
-             * Где C - введеное пользователем значение.
-             */
-            float factor = (259.0 * (contrast + 255.0)) / (255.0 * (259.0 - contrast));
+        /*
+         * Высчитываем коэффициент коррекции контраста по формуле: (259 * (C + 255)) / (255 * (259 - C))
+         * Где C - введеное пользователем значение.
+         */
+        float factor = (259.0 * (contrast + 255.0)) / (255.0 * (259.0 - contrast));
 
-            for (int i = 0; i < image.width(); i++) {
-                for (int j = 0; j < image.height(); j++) {
-                    QColor pixelColor = image.pixelColor(i, j);
+        for (int i = 0; i < image.width(); i++) {
+            for (int j = 0; j < image.height(); j++) {
+                QColor pixelColor = image.pixelColor(i, j);
 
-                    /* Проверяем на прозрачный пиксель */
-                    if (pixelColor.red() != 0 && pixelColor.green() != 0 && pixelColor.blue() != 0 && pixelColor.alpha() != 0) {
-                        /*
-                         * Высчитываем новый цвет по формуле: C' = F * (C - 128) + 128
-                         * Где C - цвет, а F - коэффициент коррекции контраста.
-                         */
-                        size_t red = truncatePixelValue(factor * (pixelColor.red() - 128) + 128);
-                        size_t green = truncatePixelValue(factor * (pixelColor.green() - 128) + 128);
-                        size_t blue = truncatePixelValue(factor * (pixelColor.blue() - 128) + 128);
+                /* Проверяем на прозрачный пиксель */
+                if (pixelColor.red() != 0 && pixelColor.green() != 0 && pixelColor.blue() != 0 && pixelColor.alpha() != 0) {
+                    /*
+                     * Высчитываем новый цвет по формуле: C' = F * (C - 128) + 128
+                     * Где C - цвет, а F - коэффициент коррекции контраста.
+                     */
+                    size_t red = truncatePixelValue(factor * (pixelColor.red() - 128) + 128);
+                    size_t green = truncatePixelValue(factor * (pixelColor.green() - 128) + 128);
+                    size_t blue = truncatePixelValue(factor * (pixelColor.blue() - 128) + 128);
 
-                        image.setPixel(i, j, QColor(red, green, blue).rgb());
-                    }
+                    image.setPixel(i, j, QColor(red, green, blue).rgb());
                 }
             }
+        }
 
-            setUpNewImage(image, savePath);
-        });
+        setUpNewImage(image, savePath);
     }
 }
 
@@ -159,26 +157,24 @@ void PhotoProcessing::processContrast(QString tmpImagePath, const QString& saveP
 void PhotoProcessing::processBrightness(QString tmpImagePath, const QString& savePath, const float brightness)
 {
     if (!tmpImagePath.remove("file://").isEmpty()) {
-        QtConcurrent::run([=]() { /// TODO: реализовать команду.
-            QImage image(tmpImagePath);
+        QImage image(tmpImagePath);
 
-            for (int i = 0; i < image.width(); i++) {
-                for (int j = 0; j < image.height(); j++) {
-                    QColor pixelColor = image.pixelColor(i, j);
+        for (int i = 0; i < image.width(); i++) {
+            for (int j = 0; j < image.height(); j++) {
+                QColor pixelColor = image.pixelColor(i, j);
 
-                    /* Проверяем на прозрачный пиксель */
-                    if (pixelColor.red() != 0 && pixelColor.green() != 0 && pixelColor.blue() != 0 && pixelColor.alpha() != 0) {
-                        size_t red = truncatePixelValue(pixelColor.red() * brightness);
-                        size_t green = truncatePixelValue(pixelColor.green() * brightness);
-                        size_t blue = truncatePixelValue(pixelColor.blue() * brightness);
+                /* Проверяем на прозрачный пиксель */
+                if (pixelColor.red() != 0 && pixelColor.green() != 0 && pixelColor.blue() != 0 && pixelColor.alpha() != 0) {
+                    size_t red = truncatePixelValue(pixelColor.red() * brightness);
+                    size_t green = truncatePixelValue(pixelColor.green() * brightness);
+                    size_t blue = truncatePixelValue(pixelColor.blue() * brightness);
 
-                        image.setPixel(i, j, QColor(red, green, blue).rgb());
-                    }
+                    image.setPixel(i, j, QColor(red, green, blue).rgb());
                 }
             }
+        }
 
-            setUpNewImage(image, savePath);
-        });
+        setUpNewImage(image, savePath);
     }
 }
 
