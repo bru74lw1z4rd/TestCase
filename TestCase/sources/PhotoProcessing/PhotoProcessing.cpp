@@ -77,10 +77,10 @@ void PhotoProcessing::procesRgbToGray(const QString& imagePath)
                 QColor pixelColor = image.pixelColor(i, j);
 
                 /* Проверяем на прозрачный пиксель */
-                if (pixelColor.red() != 0 && pixelColor.green() != 0 && pixelColor.blue() != 0 && pixelColor.alpha() != 0) {
+                if (pixelColor.alpha() != 0) {
                     int gray = (pixelColor.red() * 11 + pixelColor.green() * 16 + pixelColor.blue() * 5) / 32;
 
-                    image.setPixel(i, j, QColor(gray, gray, gray).rgb());
+                    image.setPixel(i, j, QColor(gray, gray, gray, pixelColor.alpha()).rgb());
                 }
             }
         }
@@ -136,7 +136,7 @@ void PhotoProcessing::processContrast(const QString& tmpImagePath, const QString
                 QColor pixelColor = image.pixelColor(i, j);
 
                 /* Проверяем на прозрачный пиксель */
-                if (pixelColor.red() != 0 && pixelColor.green() != 0 && pixelColor.blue() != 0 && pixelColor.alpha() != 0) {
+                if (pixelColor.alpha() != 0) {
                     /*
                      * Высчитываем новый цвет по формуле: C' = F * (C - 128) + 128
                      * Где C - цвет, а F - коэффициент коррекции контраста.
