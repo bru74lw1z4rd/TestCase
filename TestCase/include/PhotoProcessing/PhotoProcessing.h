@@ -40,14 +40,14 @@ public slots:
     /// \brief procesRgbToGray - Функция переводит изображение в grayScale.
     /// \param imagePath - Путь к изображению.
     ///
-    void procesRgbToGray(QString imagePath);
+    void procesRgbToGray(const QString& imagePath);
 
     ///
     /// \brief processHue - Устанавливает новый тон изображению.
     /// \param imagePath - Путь к изображению.
     /// \param hue - Ноывй тон изображения.
     ///
-    void processHue(QString imagePath, const quint8 hue);
+    void processHue(const QString& imagePath, const quint8 hue);
 
     ///
     /// \brief processContrast - Функция изменяет контраст изображение.
@@ -55,7 +55,7 @@ public slots:
     /// \param savePath - Путь по которому будет сохранено изменное изображение
     /// \param contrast - Параметр контрастности, на которое будет увеличена сама яркость. От -127 до 127.
     ///
-    void processContrast(QString tmpImagePath, const QString& savePath, const qint8 contrast);
+    void processContrast(const QString& tmpImagePath, const QString& savePath, const qint8 contrast);
 
     ///
     /// \brief processBrightness - Функция изменяет яркость изображение.
@@ -63,13 +63,13 @@ public slots:
     /// \param savePath - Путь по которому будет сохранено изменное изображение.
     /// \param brightness - Параметр яркости, на которое будет увеличена сама яркость. От 0.0 до 2.0.
     ///
-    void processBrightness(QString tmpImagePath, const QString& savePath, const float brightness);
+    void processBrightness(const QString& tmpImagePath, const QString& savePath, const float brightness);
 
     ///
     /// \brief processRotate - Функция делает разворот изображения на 90 градусов.
     /// \param imagePath - Путь к изображению.
     ///
-    void processRotate(QString imagePath);
+    void processRotate(const QString& imagePath);
 
     ///
     /// \brief saveFile - Функция сохраняет файл по новому пути.
@@ -77,14 +77,17 @@ public slots:
     /// \param newImagePath - Новый путь файла.
     /// \return Возвращает 'true' в случае успеха, в ином случае 'false'.
     ///
-    inline bool saveFile(QString imagePath, QString newImagePath)
+    inline bool saveFile(const QString& imagePath, const QString& newImagePath)
     {
+        const QString localFilePath = QUrl(imagePath).toLocalFile();
+        const QString newFilePath = QUrl(newImagePath).toLocalFile();
+
         /* Если файл уже существует */
-        if (QFile::exists(newImagePath.remove("file://"))) {
-            QFile::remove(newImagePath);
+        if (QFile::exists(newFilePath)) {
+            QFile::remove(newFilePath);
         }
 
-        return QFile::copy(imagePath.remove("file://"), newImagePath);
+        return QFile::copy(localFilePath, newFilePath);
     }
 
     ///
@@ -92,13 +95,13 @@ public slots:
     /// \param imagePath - Путь к изображению.
     /// \return Путь к временному изображению.
     ///
-    inline QString createTempImage(QString imagePath)
+    inline QString createTempImage(const QString& imagePath)
     {
-        QFileInfo imageInfo(imagePath.remove("file://"));
+        QFileInfo imageInfo(QUrl(imagePath).toLocalFile());
 
         const QString newFileName = temporaryDir.path() % "/" % QString::number(QRandomGenerator::global()->bounded(100000, 999999)) % imageInfo.fileName();
 
-        if (QFile::copy(imagePath, newFileName)) {
+        if (QFile::copy(imageInfo.filePath(), newFileName)) {
             return newFileName;
         }
 
