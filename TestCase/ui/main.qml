@@ -30,6 +30,17 @@ ApplicationWindow {
         property string newContrastImage: ""
     }
 
+    function resetUi() {
+        photoProcessing.isBrightnessProcessingStarted = false
+        photoProcessing.isContrastProcessingStarted = false
+        photoProcessing.newBrightnessImage = ""
+        photoProcessing.newContrastImage = ""
+
+        hueSlider.value = 0
+        brightnessSlider.value = 1.0
+        contrastSlider.value = 0
+    }
+
     FileDialog {
         id: saveFileDialog
 
@@ -51,10 +62,7 @@ ApplicationWindow {
         nameFilters: [ "Image files (*.jpg *.png)" ]
 
         onAccepted: {
-            photoProcessing.isBrightnessProcessingStarted = false
-            photoProcessing.isContrastProcessingStarted = false
-            photoProcessing.newBrightnessImage = ""
-            photoProcessing.newContrastImage = ""
+            resetUi()
 
             photoProcessing.sourceImage = fileDialog.file
             image.source = fileDialog.file
@@ -130,10 +138,7 @@ ApplicationWindow {
             highlighted: true
 
             onClicked: {
-                photoProcessing.isBrightnessProcessingStarted = false
-                photoProcessing.isContrastProcessingStarted = false
-                photoProcessing.newBrightnessImage = ""
-                photoProcessing.newContrastImage = ""
+                resetUi()
 
                 image.source = photoProcessing.sourceImage
             }
