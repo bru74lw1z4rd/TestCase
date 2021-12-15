@@ -11,13 +11,15 @@ PhotoProcessing::PhotoProcessing(QObject* parent)
 ///
 void PhotoProcessing::processBoxBlur(QString imagePath, const int samples)
 {
-    if (!imagePath.remove("file://").isEmpty()) {
+    const QString localFilePath = QUrl(imagePath).toLocalFile();
+
+    if (!localFilePath.isEmpty()) {
         /* Так как BoxBlur трудоемкая операция, запускаем ее в другом потоке. */
         QtConcurrent::run([=]() {
             /* Передаем сигнал о начале операции в qml*/
             emit loadingStartedChanged();
 
-            QImage image(imagePath);
+            QImage image(localFilePath);
             QImage newImage = image;
 
             /* Прогоняем операцию столько раз, сколько захотел пользователь */
@@ -63,25 +65,27 @@ void PhotoProcessing::processBoxBlur(QString imagePath, const int samples)
 /// \brief PhotoProcessing::procesRgbToGray - Функция переводит изображение в grayScale.
 /// \param imagePath - Путь к изображению.
 ///
-void PhotoProcessing::procesRgbToGray(QString imagePath)
+void PhotoProcessing::procesRgbToGray(const QString& imagePath)
 {
-    if (!imagePath.remove("file://").isEmpty()) {
-        QImage image(imagePath);
+    const QString localFilePath = QUrl(imagePath).toLocalFile();
+
+    if (!localFilePath.isEmpty()) {
+        QImage image(localFilePath);
 
         for (int i = 0; i < image.width(); i++) {
             for (int j = 0; j < image.height(); j++) {
                 QColor pixelColor = image.pixelColor(i, j);
 
                 /* Проверяем на прозрачный пиксель */
-                if (pixelColor.red() != 0 && pixelColor.green() != 0 && pixelColor.blue() != 0 && pixelColor.alpha() != 0) {
+                if (pixelColor.alpha() != 0) {
                     int gray = (pixelColor.red() * 11 + pixelColor.green() * 16 + pixelColor.blue() * 5) / 32;
 
-                    image.setPixel(i, j, QColor(gray, gray, gray).rgb());
+                    image.setPixel(i, j, QColor(gray, gray, gray, pixelColor.alpha()).rgb());
                 }
             }
         }
 
-        setUpNewImage(image, imagePath);
+        setUpNewImage(image, localFilePath);
     }
 }
 
@@ -90,10 +94,12 @@ void PhotoProcessing::procesRgbToGray(QString imagePath)
 /// \param imagePath - Путь к изображению.
 /// \param hue - Ноывй тон изображения.
 ///
-void PhotoProcessing::processHue(QString imagePath, const quint8 hue)
+void PhotoProcessing::processHue(const QString& imagePath, const quint8 hue)
 {
-    if (!imagePath.remove("file://").isEmpty()) {
-        QImage image(imagePath);
+    const QString localFilePath = QUrl(imagePath).toLocalFile();
+
+    if (!localFilePath.isEmpty()) {
+        QImage image(localFilePath);
 
         for (int i = 0; i < image.width(); i++) {
             for (int j = 0; j < image.height(); j++) {
@@ -104,7 +110,7 @@ void PhotoProcessing::processHue(QString imagePath, const quint8 hue)
             }
         }
 
-        setUpNewImage(image, imagePath);
+        setUpNewImage(image, localFilePath);
     }
 }
 
@@ -114,9 +120,9 @@ void PhotoProcessing::processHue(QString imagePath, const quint8 hue)
 /// \param savePath - Путь по которому будет сохранено изменное изображение
 /// \param contrast - Параметр контрастности, на которое будет увеличена сама яркость. От -127 до 127.
 ///
-void PhotoProcessing::processContrast(QString tmpImagePath, const QString& savePath, const qint8 contrast)
+void PhotoProcessing::processContrast(const QString& tmpImagePath, const QString& savePath, const qint8 contrast)
 {
-    if (!tmpImagePath.remove("file://").isEmpty()) {
+    if (!tmpImagePath.isEmpty()) {
         QImage image(tmpImagePath);
 
         /*
@@ -130,7 +136,7 @@ void PhotoProcessing::processContrast(QString tmpImagePath, const QString& saveP
                 QColor pixelColor = image.pixelColor(i, j);
 
                 /* Проверяем на прозрачный пиксель */
-                if (pixelColor.red() != 0 && pixelColor.green() != 0 && pixelColor.blue() != 0 && pixelColor.alpha() != 0) {
+                if (pixelColor.alpha() != 0) {
                     /*
                      * Высчитываем новый цвет по формуле: C' = F * (C - 128) + 128
                      * Где C - цвет, а F - коэффициент коррекции контраста.
@@ -154,9 +160,9 @@ void PhotoProcessing::processContrast(QString tmpImagePath, const QString& saveP
 /// \param savePath - Путь по которому будет сохранено изменное изображение
 /// \param brightness - Параметр яркости, на которое будет увеличена сама яркость. От 0.0 до 2.0.
 ///
-void PhotoProcessing::processBrightness(QString tmpImagePath, const QString& savePath, const float brightness)
+void PhotoProcessing::processBrightness(const QString& tmpImagePath, const QString& savePath, const float brightness)
 {
-    if (!tmpImagePath.remove("file://").isEmpty()) {
+    if (!tmpImagePath.isEmpty()) {
         QImage image(tmpImagePath);
 
         for (int i = 0; i < image.width(); i++) {
@@ -182,10 +188,12 @@ void PhotoProcessing::processBrightness(QString tmpImagePath, const QString& sav
 /// \brief PhotoProcessing::processRotate - Функция делает разворот изображения на 90 градусов.
 /// \param imagePath - Путь к изображению.
 ///
-void PhotoProcessing::processRotate(QString imagePath)
+void PhotoProcessing::processRotate(const QString& imagePath)
 {
-    if (!imagePath.remove("file://").isEmpty()) {
-        QImage image(imagePath);
+    const QString localFilePath = QUrl(imagePath).toLocalFile();
+
+    if (!localFilePath.isEmpty()) {
+        QImage image(localFilePath);
         QImage newImage(image.height(), image.width(), image.format());
 
         for (int i = 0; i < image.width(); i++) {
@@ -195,7 +203,7 @@ void PhotoProcessing::processRotate(QString imagePath)
             }
         }
 
-        setUpNewImage(newImage, imagePath);
+        setUpNewImage(newImage, localFilePath);
     }
 }
 
@@ -211,6 +219,6 @@ void PhotoProcessing::setUpNewImage(const QImage& image, const QString& imagePat
         const QString fileName = temporaryDir.path() % "/" % imageInfo.fileName();
 
         image.save(fileName);
-        emit imageEditChanged("file://" % fileName);
+        emit imageEditChanged(QUrl::fromLocalFile(fileName).toString());
     }
 }
