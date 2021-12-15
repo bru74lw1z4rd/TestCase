@@ -8,6 +8,7 @@
 #include <QRandomGenerator>
 #include <QStringBuilder>
 #include <QTemporaryDir>
+#include <QUrl>
 #include <QtConcurrent>
 
 ///

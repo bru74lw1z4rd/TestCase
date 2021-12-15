@@ -184,8 +184,8 @@ void PhotoProcessing::processBrightness(QString tmpImagePath, const QString& sav
 ///
 void PhotoProcessing::processRotate(QString imagePath)
 {
-    if (!imagePath.remove("file://").isEmpty()) {
-        QImage image(imagePath);
+    if (!QUrl::fromLocalFile(imagePath).toString().isEmpty()) {
+        QImage image(QUrl(imagePath).toLocalFile());
         QImage newImage(image.height(), image.width(), image.format());
 
         for (int i = 0; i < image.width(); i++) {
@@ -195,7 +195,7 @@ void PhotoProcessing::processRotate(QString imagePath)
             }
         }
 
-        setUpNewImage(newImage, imagePath);
+        setUpNewImage(newImage, QUrl(imagePath).toLocalFile());
     }
 }
 
@@ -211,6 +211,6 @@ void PhotoProcessing::setUpNewImage(const QImage& image, const QString& imagePat
         const QString fileName = temporaryDir.path() % "/" % imageInfo.fileName();
 
         image.save(fileName);
-        emit imageEditChanged("file://" % fileName);
+        emit imageEditChanged(QUrl::fromLocalFile(fileName).toString());
     }
 }
