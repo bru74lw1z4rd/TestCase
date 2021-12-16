@@ -26,7 +26,6 @@ void PhotoProcessing::processIncreaseScaling(const QString& imagePath)
              * т.к. конструктор QImage не устанавливает новое значение в хедеш изображения
              */
             QImage newImage = image.copy(0, 0, image.width() * 2, image.height() * 2);
-            newImage = newImage.convertToFormat(QImage::Format_RGBA8888);
 
             /* Удаляем не масштабированную копию изображения */
             for (int y = 0; y < image.height(); ++y) {
@@ -35,43 +34,24 @@ void PhotoProcessing::processIncreaseScaling(const QString& imagePath)
                 }
             }
 
-            /*
-             * Растягиваем пикселы по новой картинке.
-             * Пиксели растягиваются через один (в ширину)
-             * и пропупускают каждую строчку
-             */
+            int newImagePixelY = 0;
             for (int y = 0; y < image.height(); ++y) {
+                int newImagePixelX = 0;
+
                 for (int x = 0; x < image.width(); ++x) {
-                    newImage.setPixelColor(x * 2, y * 2, image.pixelColor(x, y));
+                    /* Дублируем пиксель через один */
+                    newImage.setPixelColor(newImagePixelX, newImagePixelY, image.pixelColor(x, y));
+                    newImage.setPixelColor(newImagePixelX + 1, newImagePixelY, image.pixelColor(x, y));
+
+                    /* Доблируем предыдущий ряд пискелей */
+                    newImage.setPixelColor(newImagePixelX, newImagePixelY + 1, image.pixelColor(x, y));
+                    newImage.setPixelColor(newImagePixelX + 1, newImagePixelY + 1, image.pixelColor(x, y));
+
+                    newImagePixelX += 2;
                 }
-            }
 
-            /* Дублируем пиксель через один */
-            for (int y = 0; y < newImage.height(); ++y) {
-                for (int x = 0; x < newImage.width(); ++x) {
-                    if (x != 0) {
-                        QRgb pixel = newImage.pixel(x, y);
-                        QRgb previousPixel = newImage.pixel(x - 1, y);
-
-                        if (pixel == 0 && previousPixel != 0) {
-                            newImage.setPixel(x, y, previousPixel);
-                        }
-                    }
-                }
-            }
-
-            /* Доблируем предыдущий ряд пискелей */
-            for (int y = 0; y < newImage.height(); ++y) {
-                for (int x = 0; x < newImage.width(); ++x) {
-                    if (y % 2 != 0) {
-                        QRgb pixel = newImage.pixel(x, y);
-                        QRgb previousPixel = newImage.pixel(x, y - 1);
-
-                        if (pixel == 0 && previousPixel != 0) {
-                            newImage.setPixel(x, y, previousPixel);
-                        }
-                    }
-                }
+                /* Пропускаем однин ряд в матрице исходного изображения */
+                newImagePixelY += 2;
             }
 
             /* Отправляем новое изображение в qml */
@@ -101,7 +81,6 @@ void PhotoProcessing::processDecreaseScaling(const QString& imagePath)
              * т.к. конструктор QImage не устанавливает новое значение в хедеш изображения
              */
             QImage newImage = image.copy(0, 0, image.width() / 2, image.height() / 2);
-            newImage = newImage.convertToFormat(QImage::Format_RGBA8888);
 
             /* Удаляем не масштабированную копию изображения */
             for (int y = 0; y < newImage.height(); ++y) {
@@ -266,9 +245,9 @@ void PhotoProcessing::processContrast(const QString& tmpImagePath, const QString
                      * Высчитываем новый цвет по формуле: C' = F * (C - 128) + 128
                      * Где C - цвет, а F - коэффициент коррекции контраста.
                      */
-                    size_t red = truncatePixelValue(factor * (pixelColor.red() - 128) + 128);
-                    size_t green = truncatePixelValue(factor * (pixelColor.green() - 128) + 128);
-                    size_t blue = truncatePixelValue(factor * (pixelColor.blue() - 128) + 128);
+                    QRgb red = truncatePixelValue(factor * (pixelColor.red() - 128) + 128);
+                    QRgb green = truncatePixelValue(factor * (pixelColor.green() - 128) + 128);
+                    QRgb blue = truncatePixelValue(factor * (pixelColor.blue() - 128) + 128);
 
                     image.setPixel(i, j, QColor(red, green, blue).rgb());
                 }
@@ -296,9 +275,9 @@ void PhotoProcessing::processBrightness(const QString& tmpImagePath, const QStri
 
                 /* Проверяем на прозрачный пиксель */
                 if (pixelColor.red() != 0 && pixelColor.green() != 0 && pixelColor.blue() != 0 && pixelColor.alpha() != 0) {
-                    size_t red = truncatePixelValue(pixelColor.red() * brightness);
-                    size_t green = truncatePixelValue(pixelColor.green() * brightness);
-                    size_t blue = truncatePixelValue(pixelColor.blue() * brightness);
+                    QRgb red = truncatePixelValue(pixelColor.red() * brightness);
+                    QRgb green = truncatePixelValue(pixelColor.green() * brightness);
+                    QRgb blue = truncatePixelValue(pixelColor.blue() * brightness);
 
                     image.setPixel(i, j, QColor(red, green, blue).rgb());
                 }

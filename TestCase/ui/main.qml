@@ -466,9 +466,7 @@ ApplicationWindow {
                 }
             }
         }
-
     }
-
 
     Connections {
         target: photoProcessing

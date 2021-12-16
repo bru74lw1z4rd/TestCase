@@ -138,7 +138,7 @@ private:
     /// \param value - Значение RGB.
     /// \return Если значение превышает максимальное значение одного из цветов, то функция вернет '255', если же значение меньше, то '0'.
     ///
-    static size_t truncatePixelValue(const size_t value)
+    static QRgb truncatePixelValue(const size_t value)
     {
         if (value == 0) {
             return 0;
