@@ -157,22 +157,27 @@ void PhotoProcessing::processRgbToGray(const QString& imagePath)
     const QString localFilePath = QUrl(imagePath).toLocalFile();
 
     if (!localFilePath.isEmpty()) {
-        QImage image(localFilePath);
+        QtConcurrent::run([=]() {
+            /* Передаем сигнал о начале операции в qml */
+            emit loadingStartedChanged();
 
-        for (int i = 0; i < image.width(); i++) {
-            for (int j = 0; j < image.height(); j++) {
-                QColor pixelColor = image.pixelColor(i, j);
+            QImage image(localFilePath);
 
-                /* Проверяем на прозрачный пиксель */
-                if (pixelColor.alpha() != 0) {
-                    int gray = (pixelColor.red() * 11 + pixelColor.green() * 16 + pixelColor.blue() * 5) / 32;
+            for (int i = 0; i < image.width(); i++) {
+                for (int j = 0; j < image.height(); j++) {
+                    QColor pixelColor = image.pixelColor(i, j);
 
-                    image.setPixel(i, j, QColor(gray, gray, gray, pixelColor.alpha()).rgb());
+                    /* Проверяем на прозрачный пиксель */
+                    if (pixelColor.alpha() != 0) {
+                        int gray = (pixelColor.red() * 11 + pixelColor.green() * 16 + pixelColor.blue() * 5) / 32;
+
+                        image.setPixel(i, j, QColor(gray, gray, gray, pixelColor.alpha()).rgb());
+                    }
                 }
             }
-        }
 
-        setUpNewImage(image, localFilePath);
+            setUpNewImage(image, localFilePath);
+        });
     }
 }
 
@@ -280,17 +285,22 @@ void PhotoProcessing::processRotate(const QString& imagePath)
     const QString localFilePath = QUrl(imagePath).toLocalFile();
 
     if (!localFilePath.isEmpty()) {
-        QImage image(localFilePath);
-        QImage newImage(image.height(), image.width(), image.format());
+        QtConcurrent::run([=]() {
+            /* Передаем сигнал о начале операции в qml */
+            emit loadingStartedChanged();
 
-        for (int i = 0; i < image.width(); i++) {
-            for (int j = 0; j < image.height(); j++) {
-                QRgb pixel = image.pixel(i, j);
-                newImage.setPixel(j, image.width() - i - 1, pixel);
+            QImage image(localFilePath);
+            QImage newImage(image.height(), image.width(), image.format());
+
+            for (int i = 0; i < image.width(); i++) {
+                for (int j = 0; j < image.height(); j++) {
+                    QRgb pixel = image.pixel(i, j);
+                    newImage.setPixel(j, image.width() - i - 1, pixel);
+                }
             }
-        }
 
-        setUpNewImage(newImage, localFilePath);
+            setUpNewImage(newImage, localFilePath);
+        });
     }
 }
 

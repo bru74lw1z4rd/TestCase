@@ -30,6 +30,7 @@ ApplicationWindow {
         property string newContrastImage: ""
     }
 
+    /* Функция сбрасывает все значения UI страницы */
     function resetUi() {
         photoProcessing.isBrightnessProcessingStarted = false
         photoProcessing.isContrastProcessingStarted = false
