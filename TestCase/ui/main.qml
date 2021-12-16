@@ -449,7 +449,7 @@ ApplicationWindow {
                     highlighted: true
 
                     onClicked: {
-                        photoProcessing.processPlusScaling(image.source)
+                        photoProcessing.processIncreaseScaling(image.source)
                     }
                 }
 
@@ -461,6 +461,7 @@ ApplicationWindow {
                     highlighted: true
 
                     onClicked: {
+                        photoProcessing.processDecreaseScaling(image.source)
                     }
                 }
             }

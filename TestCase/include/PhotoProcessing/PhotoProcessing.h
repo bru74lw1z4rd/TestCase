@@ -31,10 +31,16 @@ public:
 
 public slots:
     ///
-    /// \brief processPlusScaling - Функция увеличивает изображение на 2.
+    /// \brief processIncreaseScaling - Функция увеличивает изображение на 2.
     /// \param imagePath - Путь к изображению.
     ///
-    void processPlusScaling(const QString& imagePath);
+    void processIncreaseScaling(const QString& imagePath);
+
+    ///
+    /// \brief processDecreaseScaling - Функция уменьшает изображение в 2 раза используя метод ближайшего соседа.
+    /// \param imagePath - Путь к изображению.
+    ///
+    void processDecreaseScaling(const QString& imagePath);
 
     ///
     /// \brief processBoxBlur - Функция обрабатывает блюрит изображение с помощью BoxBlur.

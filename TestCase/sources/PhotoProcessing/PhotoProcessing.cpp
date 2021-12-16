@@ -6,17 +6,17 @@ PhotoProcessing::PhotoProcessing(QObject* parent)
 }
 
 ///
-/// \brief PhotoProcessing::processPlusScaling
-/// \param imagePath
+/// \brief PhotoProcessing::processIncreaseScaling - Функция увеличивает изображение в 2 раза используя метод ближайшего соседа.
+/// \param imagePath - Путь к изображению.
 ///
-void PhotoProcessing::processPlusScaling(const QString& imagePath)
+void PhotoProcessing::processIncreaseScaling(const QString& imagePath)
 {
     const QString localFilePath = QUrl(imagePath).toLocalFile();
 
     if (!localFilePath.isEmpty()) {
         /* Так как scale трудоемкая операция, запускаем ее в другом потоке. */
         QtConcurrent::run([=]() {
-            /* Передаем сигнал о начале операции в qml*/
+            /* Передаем сигнал о начале операции в qml */
             emit loadingStartedChanged();
 
             QImage image(localFilePath);
@@ -81,6 +81,56 @@ void PhotoProcessing::processPlusScaling(const QString& imagePath)
 }
 
 ///
+/// \brief PhotoProcessing::processDecreaseScaling - Функция уменьшает изображение в 2 раза используя метод ближайшего соседа.
+/// \param imagePath - Путь к изображению.
+///
+void PhotoProcessing::processDecreaseScaling(const QString& imagePath)
+{
+    const QString localFilePath = QUrl(imagePath).toLocalFile();
+
+    if (!localFilePath.isEmpty()) {
+        /* Так как scale трудоемкая операция, запускаем ее в другом потоке. */
+        QtConcurrent::run([=]() {
+            /* Передаем сигнал о начале операции в qml */
+            emit loadingStartedChanged();
+
+            QImage image(localFilePath);
+
+            /*
+             * Копируем изображения с новой высотой и шириной,
+             * т.к. конструктор QImage не устанавливает новое значение в хедеш изображения
+             */
+            QImage newImage = image.copy(0, 0, image.width() / 2, image.height() / 2);
+            newImage = newImage.convertToFormat(QImage::Format_RGBA8888);
+
+            /* Удаляем не масштабированную копию изображения */
+            for (int y = 0; y < newImage.height(); ++y) {
+                for (int x = 0; x < newImage.width(); ++x) {
+                    newImage.setPixelColor(x, y, QColor(0, 0, 0, 0));
+                }
+            }
+
+            /* Вставляем каждый третий пиксель (начиная с 0) в новое изображение  */
+            int newImagePixelY = 0;
+            for (int y = 0; y < newImage.height(); ++y) {
+                int newImagePixelX = 0;
+
+                for (int x = 0; x < newImage.width(); ++x) {
+                    newImage.setPixelColor(x, y, image.pixelColor(newImagePixelX, newImagePixelY));
+                    newImagePixelX += 2;
+                }
+
+                /* Пропускаем однин ряд в матрице исходного изображения */
+                newImagePixelY += 2;
+            }
+
+            /* Отправляем новое изображение в qml */
+            setUpNewImage(newImage, imagePath);
+        });
+    }
+}
+
+///
 /// \brief PhotoProcessing::processBoxBlur - Функция обрабатывает блюрит изображение с помощью BoxBlur.
 /// \param imagePath - Путь к изображению.
 ///
@@ -91,7 +141,7 @@ void PhotoProcessing::processBoxBlur(const QString& imagePath, const int samples
     if (!localFilePath.isEmpty()) {
         /* Так как BoxBlur трудоемкая операция, запускаем ее в другом потоке. */
         QtConcurrent::run([=]() {
-            /* Передаем сигнал о начале операции в qml*/
+            /* Передаем сигнал о начале операции в qml */
             emit loadingStartedChanged();
 
             QImage image(localFilePath);
