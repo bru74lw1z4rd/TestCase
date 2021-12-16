@@ -99,7 +99,7 @@ public slots:
             QFile::remove(newFilePath);
         }
 
-        return QFile::copy(localFilePath, newFilePath);
+        return QFile::copy(localFilePath, newFilePath % "." % QFileInfo(localFilePath).suffix());
     }
 
     ///

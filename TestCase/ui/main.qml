@@ -123,6 +123,8 @@ ApplicationWindow {
 
             text: "Сохранить изображение"
 
+            enabled: (image.source == "") ? false : true
+
             highlighted: true
 
             onClicked:  {

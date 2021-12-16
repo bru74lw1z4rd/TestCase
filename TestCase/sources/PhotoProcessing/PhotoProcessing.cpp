@@ -20,19 +20,7 @@ void PhotoProcessing::processIncreaseScaling(const QString& imagePath)
             emit loadingStartedChanged();
 
             QImage image(localFilePath);
-
-            /*
-             * Копируем изображения с новой высотой и шириной,
-             * т.к. конструктор QImage не устанавливает новое значение в хедеш изображения
-             */
-            QImage newImage = image.copy(0, 0, image.width() * 2, image.height() * 2);
-
-            /* Удаляем не масштабированную копию изображения */
-            for (int y = 0; y < image.height(); ++y) {
-                for (int x = 0; x < image.width(); ++x) {
-                    newImage.setPixelColor(x, y, QColor(0, 0, 0, 0));
-                }
-            }
+            QImage newImage(image.width() * 2, image.height() * 2, image.format());
 
             int newImagePixelY = 0;
             for (int y = 0; y < image.height(); ++y) {
@@ -75,12 +63,7 @@ void PhotoProcessing::processDecreaseScaling(const QString& imagePath)
             emit loadingStartedChanged();
 
             QImage image(localFilePath);
-
-            /*
-             * Копируем изображения с новой высотой и шириной,
-             * т.к. конструктор QImage не устанавливает новое значение в хедеш изображения
-             */
-            QImage newImage = image.copy(0, 0, image.width() / 2, image.height() / 2);
+            QImage newImage(image.width() / 2, image.height() / 2, image.format());
 
             /* Удаляем не масштабированную копию изображения */
             for (int y = 0; y < newImage.height(); ++y) {
