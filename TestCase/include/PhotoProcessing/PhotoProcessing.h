@@ -31,16 +31,22 @@ public:
 
 public slots:
     ///
+    /// \brief processPlusScaling - Функция увеличивает изображение на 2.
+    /// \param imagePath - Путь к изображению.
+    ///
+    void processPlusScaling(const QString& imagePath);
+
+    ///
     /// \brief processBoxBlur - Функция обрабатывает блюрит изображение с помощью BoxBlur.
     /// \param imagePath - Путь к изображению.
     ///
-    void processBoxBlur(QString imagePath, const int samples);
+    void processBoxBlur(const QString& imagePath, const int samples);
 
     ///
     /// \brief procesRgbToGray - Функция переводит изображение в grayScale.
     /// \param imagePath - Путь к изображению.
     ///
-    void procesRgbToGray(const QString& imagePath);
+    void processRgbToGray(const QString& imagePath);
 
     ///
     /// \brief processHue - Устанавливает новый тон изображению.

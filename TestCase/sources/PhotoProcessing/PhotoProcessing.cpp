@@ -6,10 +6,85 @@ PhotoProcessing::PhotoProcessing(QObject* parent)
 }
 
 ///
+/// \brief PhotoProcessing::processPlusScaling
+/// \param imagePath
+///
+void PhotoProcessing::processPlusScaling(const QString& imagePath)
+{
+    const QString localFilePath = QUrl(imagePath).toLocalFile();
+
+    if (!localFilePath.isEmpty()) {
+        /* Так как scale трудоемкая операция, запускаем ее в другом потоке. */
+        QtConcurrent::run([=]() {
+            /* Передаем сигнал о начале операции в qml*/
+            emit loadingStartedChanged();
+
+            QImage image(localFilePath);
+
+            /*
+             * Копируем изображения с новой высотой и шириной,
+             * т.к. конструктор QImage не устанавливает новое значение в хедеш изображения
+             */
+            QImage newImage = image.copy(0, 0, image.width() * 2, image.height() * 2);
+            newImage = newImage.convertToFormat(QImage::Format_RGBA8888);
+
+            /* Удаляем не масштабированную копию изображения */
+            for (int y = 0; y < image.height(); ++y) {
+                for (int x = 0; x < image.width(); ++x) {
+                    newImage.setPixelColor(x, y, QColor(0, 0, 0, 0));
+                }
+            }
+
+            /*
+             * Растягиваем пикселы по новой картинке.
+             * Пиксели растягиваются через один (в ширину)
+             * и пропупускают каждую строчку
+             */
+            for (int y = 0; y < image.height(); ++y) {
+                for (int x = 0; x < image.width(); ++x) {
+                    newImage.setPixelColor(x * 2, y * 2, image.pixelColor(x, y));
+                }
+            }
+
+            /* Дублируем пиксель через один */
+            for (int y = 0; y < newImage.height(); ++y) {
+                for (int x = 0; x < newImage.width(); ++x) {
+                    if (x != 0) {
+                        QRgb pixel = newImage.pixel(x, y);
+                        QRgb previousPixel = newImage.pixel(x - 1, y);
+
+                        if (pixel == 0 && previousPixel != 0) {
+                            newImage.setPixel(x, y, previousPixel);
+                        }
+                    }
+                }
+            }
+
+            /* Доблируем предыдущий ряд пискелей */
+            for (int y = 0; y < newImage.height(); ++y) {
+                for (int x = 0; x < newImage.width(); ++x) {
+                    if (y % 2 != 0) {
+                        QRgb pixel = newImage.pixel(x, y);
+                        QRgb previousPixel = newImage.pixel(x, y - 1);
+
+                        if (pixel == 0 && previousPixel != 0) {
+                            newImage.setPixel(x, y, previousPixel);
+                        }
+                    }
+                }
+            }
+
+            /* Отправляем новое изображение в qml */
+            setUpNewImage(newImage, imagePath);
+        });
+    }
+}
+
+///
 /// \brief PhotoProcessing::processBoxBlur - Функция обрабатывает блюрит изображение с помощью BoxBlur.
 /// \param imagePath - Путь к изображению.
 ///
-void PhotoProcessing::processBoxBlur(QString imagePath, const int samples)
+void PhotoProcessing::processBoxBlur(const QString& imagePath, const int samples)
 {
     const QString localFilePath = QUrl(imagePath).toLocalFile();
 
@@ -65,7 +140,7 @@ void PhotoProcessing::processBoxBlur(QString imagePath, const int samples)
 /// \brief PhotoProcessing::procesRgbToGray - Функция переводит изображение в grayScale.
 /// \param imagePath - Путь к изображению.
 ///
-void PhotoProcessing::procesRgbToGray(const QString& imagePath)
+void PhotoProcessing::processRgbToGray(const QString& imagePath)
 {
     const QString localFilePath = QUrl(imagePath).toLocalFile();
 

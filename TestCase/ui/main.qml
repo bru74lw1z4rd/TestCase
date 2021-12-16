@@ -82,7 +82,7 @@ ApplicationWindow {
     Rectangle {
         id: rightMenuBackground
 
-        width: rightMenu.width
+        width: rightMenuFlickable.width
 
         color: "#4d4d4d"
 
@@ -158,7 +158,7 @@ ApplicationWindow {
         anchors {
             top: parent.top
             left: mainMenu.right
-            right: rightMenu.left
+            right: rightMenuFlickable.left
             bottom: parent.bottom
         }
 
@@ -190,14 +190,14 @@ ApplicationWindow {
         }
     }
 
-    Column {
-        id: rightMenu
+    Flickable {
+        id: rightMenuFlickable
 
         width: 200
 
-        spacing: 12
+        contentHeight: rightMenu.height
 
-        enabled: imageBusyIndicatorLoader.active === false
+        boundsBehavior: Flickable.StopAtBounds
 
         anchors {
             top: parent.top
@@ -209,80 +209,216 @@ ApplicationWindow {
         }
 
         Column {
-            height: hueHeading.implicitHeight + hueSlider.implicitHeight + contrastHeading.implicitHeight + hueSeperator.implicitHeight + brightnessApplyButton.implicitHeight
-                    + brightnessSeperator.implicitHeight + contrastSlider.implicitHeight + brightnessHeading.implicitHeight + brightnessSlider.implicitHeight + slidersApplyButton.implicitHeight
-            width: parent.width
+            id: rightMenu
 
-            Text {
-                id: hueHeading
+            spacing: 12
 
-                width: parent.width
+            enabled: imageBusyIndicatorLoader.active === false
 
-                text: qsTr("HUE")
-                color: "white"
-
-                font.pointSize: 16
-                horizontalAlignment: Text.AlignHCenter
+            anchors {
+                fill: parent
             }
 
-            Slider {
-                id: hueSlider
+            Column {
+                height: hueHeading.implicitHeight + hueSlider.implicitHeight + contrastHeading.implicitHeight + hueSeperator.implicitHeight + brightnessApplyButton.implicitHeight
+                        + brightnessSeperator.implicitHeight + contrastSlider.implicitHeight + brightnessHeading.implicitHeight + brightnessSlider.implicitHeight + slidersApplyButton.implicitHeight
+                width: parent.width
 
-                from: 0
-                value: 0
-                to: 255
+                Text {
+                    id: hueHeading
 
-                onMoved: {
-                    photoProcessing.processHue(image.source, hueSlider.value)
+                    width: parent.width
+
+                    text: qsTr("HUE")
+                    color: "white"
+
+                    font.pointSize: 16
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                Slider {
+                    id: hueSlider
+
+                    from: 0
+                    value: 0
+                    to: 255
+
+                    onMoved: {
+                        photoProcessing.processHue(image.source, hueSlider.value)
+                    }
+                }
+
+                ToolSeparator {
+                    id: hueSeperator
+
+                    width: parent.width
+
+                    orientation: "Horizontal"
+                }
+
+                Text {
+                    id: brightnessHeading
+
+                    enabled: photoProcessing.isContrastProcessingStarted === false
+
+                    width: parent.width
+
+                    text: qsTr("Яркость")
+                    color: "white"
+
+                    font.pointSize: 16
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                Slider {
+                    id: brightnessSlider
+
+                    enabled: photoProcessing.isContrastProcessingStarted === false
+
+                    from: 0.0
+                    value: 1.0
+                    to: 2.0
+
+                    onMoved: {
+                        if (photoProcessing.isBrightnessProcessingStarted === false) {
+                            photoProcessing.newBrightnessImage = photoProcessing.createTempImage(image.source)
+                            photoProcessing.isBrightnessProcessingStarted = true
+                        }
+
+                        photoProcessing.processBrightness(photoProcessing.newBrightnessImage, image.source, brightnessSlider.value)
+                    }
+                }
+
+                ItemDelegate {
+                    id: brightnessApplyButton
+
+                    enabled: photoProcessing.isContrastProcessingStarted === false
+
+                    width: parent.width
+
+                    text: "Применить"
+
+                    highlighted: true
+
+                    onClicked: {
+                        photoProcessing.isBrightnessProcessingStarted = false
+                    }
+                }
+
+                ToolSeparator {
+                    id: brightnessSeperator
+
+                    width: parent.width
+
+                    orientation: "Horizontal"
+                }
+
+                Text {
+                    id: contrastHeading
+
+                    enabled: photoProcessing.isBrightnessProcessingStarted === false
+
+                    width: parent.width
+
+                    text: qsTr("Контрастность")
+                    color: "white"
+
+                    font.pointSize: 16
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                Slider {
+                    id: contrastSlider
+
+                    enabled: photoProcessing.isBrightnessProcessingStarted === false
+
+                    from: -127
+                    value: 0
+                    to: 127
+
+                    onMoved: {
+                        if (photoProcessing.isContrastProcessingStarted === false) {
+                            photoProcessing.newContrastImage = photoProcessing.createTempImage(image.source)
+                            photoProcessing.isContrastProcessingStarted = true
+                        }
+
+                        photoProcessing.processContrast(photoProcessing.newContrastImage, image.source, contrastSlider.value)
+                    }
+                }
+
+                ItemDelegate {
+                    id: slidersApplyButton
+
+                    enabled: photoProcessing.isBrightnessProcessingStarted === false
+
+                    width: parent.width
+
+                    text: "Применить"
+
+                    highlighted: true
+
+                    onClicked: {
+                        photoProcessing.isContrastProcessingStarted = false
+                    }
                 }
             }
 
             ToolSeparator {
-                id: hueSeperator
-
                 width: parent.width
 
                 orientation: "Horizontal"
             }
 
-            Text {
-                id: brightnessHeading
-
-                enabled: photoProcessing.isContrastProcessingStarted === false
-
+            ItemDelegate {
                 width: parent.width
 
-                text: qsTr("Яркость")
+                text: "Повернуть"
+
+                highlighted: true
+
+                onClicked: {
+                    photoProcessing.processRotate(image.source)
+                }
+            }
+
+            ItemDelegate {
+                width: parent.width
+
+                text: "RGB в серый"
+
+                highlighted: true
+
+                onClicked: {
+                    photoProcessing.processRgbToGray(image.source)
+                }
+            }
+
+            Text {
+                width: parent.width
+
+                text: qsTr("Box Blur")
                 color: "white"
 
                 font.pointSize: 16
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            Slider {
-                id: brightnessSlider
+            TextField {
+                id: boxBlurSamples
 
-                enabled: photoProcessing.isContrastProcessingStarted === false
+                width: parent.width
 
-                from: 0.0
-                value: 1.0
-                to: 2.0
+                text: "1"
 
-                onMoved: {
-                    if (photoProcessing.isBrightnessProcessingStarted === false) {
-                        photoProcessing.newBrightnessImage = photoProcessing.createTempImage(image.source)
-                        photoProcessing.isBrightnessProcessingStarted = true
-                    }
+                placeholderText: "1"
 
-                    photoProcessing.processBrightness(photoProcessing.newBrightnessImage, image.source, brightnessSlider.value)
-                }
+                selectByMouse: true
+
+                leftPadding: 4
+                rightPadding: 4
             }
 
             ItemDelegate {
-                id: brightnessApplyButton
-
-                enabled: photoProcessing.isContrastProcessingStarted === false
-
                 width: parent.width
 
                 text: "Применить"
@@ -290,135 +426,48 @@ ApplicationWindow {
                 highlighted: true
 
                 onClicked: {
-                    photoProcessing.isBrightnessProcessingStarted = false
+                    photoProcessing.processBoxBlur(image.source, boxBlurSamples.text)
                 }
             }
 
             ToolSeparator {
-                id: brightnessSeperator
-
                 width: parent.width
 
                 orientation: "Horizontal"
             }
 
-            Text {
-                id: contrastHeading
-
-                enabled: photoProcessing.isBrightnessProcessingStarted === false
-
+            Row {
                 width: parent.width
 
-                text: qsTr("Контрастность")
-                color: "white"
+                spacing: 5
 
-                font.pointSize: 16
-                horizontalAlignment: Text.AlignHCenter
-            }
+                ItemDelegate {
+                    width: parent.width / 2
 
-            Slider {
-                id: contrastSlider
+                    text: "+"
 
-                enabled: photoProcessing.isBrightnessProcessingStarted === false
+                    highlighted: true
 
-                from: -127
-                value: 0
-                to: 127
-
-                onMoved: {
-                    if (photoProcessing.isContrastProcessingStarted === false) {
-                        photoProcessing.newContrastImage = photoProcessing.createTempImage(image.source)
-                        photoProcessing.isContrastProcessingStarted = true
+                    onClicked: {
+                        photoProcessing.processPlusScaling(image.source)
                     }
-
-                    photoProcessing.processContrast(photoProcessing.newContrastImage, image.source, contrastSlider.value)
                 }
-            }
 
-            ItemDelegate {
-                id: slidersApplyButton
+                ItemDelegate {
+                    width: parent.width / 2
 
-                enabled: photoProcessing.isBrightnessProcessingStarted === false
+                    text: "-"
 
-                width: parent.width
+                    highlighted: true
 
-                text: "Применить"
-
-                highlighted: true
-
-                onClicked: {
-                    photoProcessing.isContrastProcessingStarted = false
+                    onClicked: {
+                    }
                 }
             }
         }
 
-        ToolSeparator {
-            width: parent.width
-
-            orientation: "Horizontal"
-        }
-
-        ItemDelegate {
-            width: parent.width
-
-            text: "Повернуть"
-
-            highlighted: true
-
-            onClicked: {
-                photoProcessing.processRotate(image.source)
-            }
-        }
-
-        ItemDelegate {
-            width: parent.width
-
-            text: "RGB в серый"
-
-            highlighted: true
-
-            onClicked: {
-                photoProcessing.procesRgbToGray(image.source)
-            }
-        }
-
-        Text {
-            width: parent.width
-
-            text: qsTr("Box Blur")
-            color: "white"
-
-            font.pointSize: 16
-            horizontalAlignment: Text.AlignHCenter
-        }
-
-        TextField {
-            id: boxBlurSamples
-
-            width: parent.width
-
-            text: "1"
-
-            placeholderText: "1"
-
-            selectByMouse: true
-
-            leftPadding: 4
-            rightPadding: 4
-        }
-
-        ItemDelegate {
-            width: parent.width
-
-            text: "Применить"
-
-            highlighted: true
-
-            onClicked: {
-                photoProcessing.processBoxBlur(image.source, boxBlurSamples.text)
-            }
-        }
     }
+
 
     Connections {
         target: photoProcessing
