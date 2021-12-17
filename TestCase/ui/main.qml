@@ -64,6 +64,8 @@ ApplicationWindow {
         imageOperationsHistory.push(photoProcessing.sourceImage)
         currentOperationInHistory = 0
 
+        threadQueue = []
+
         photoProcessing.isHueProcessingStarted = false
         photoProcessing.isBrightnessProcessingStarted = false
         photoProcessing.isContrastProcessingStarted = false
