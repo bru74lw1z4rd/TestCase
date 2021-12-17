@@ -118,6 +118,7 @@ void PhotoProcessing::processBoxBlur(const QString& imagePath, const int samples
                             int redTotal = 0;
                             int greenTotal = 0;
                             int blueTotal = 0;
+                            int alphaTotal = 0;
 
                             /* Подсчитываем общее кол-во RGB пикселей вокруг x, y */
                             for (int i = -1; i <= 1; i++) {
@@ -131,12 +132,13 @@ void PhotoProcessing::processBoxBlur(const QString& imagePath, const int samples
                                         redTotal += pixel.red();
                                         greenTotal += pixel.green();
                                         blueTotal += pixel.blue();
+                                        alphaTotal += pixel.alpha();
                                     }
                                 }
                             }
 
                             /* Применяем эффект блюра на пиксель */
-                            newImage.setPixelColor(x, y, QColor(redTotal / blurMatrixLength, greenTotal / blurMatrixLength, blueTotal / blurMatrixLength));
+                            newImage.setPixelColor(x, y, QColor(redTotal / blurMatrixLength, greenTotal / blurMatrixLength, blueTotal / blurMatrixLength, alphaTotal / blurMatrixLength));
                         }
                     }
                 }

@@ -1,6 +1,5 @@
 #include <QApplication>
 #include <QQmlApplicationEngine>
-#include <QThread>
 
 #include "include/PhotoProcessing/PhotoProcessing.h"
 
