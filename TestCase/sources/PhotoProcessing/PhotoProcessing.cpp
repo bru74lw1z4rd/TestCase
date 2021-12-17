@@ -237,7 +237,7 @@ void PhotoProcessing::processContrast(const QString& tmpImagePath, const QString
                     QRgb green = truncatePixelValue(factor * (pixelColor.green() - 128) + 128);
                     QRgb blue = truncatePixelValue(factor * (pixelColor.blue() - 128) + 128);
 
-                    image.setPixel(i, j, QColor(red, green, blue).rgb());
+                    image.setPixel(i, j, QColor(red, green, blue, pixelColor.alpha()).rgba());
                 }
             }
         }
@@ -267,7 +267,7 @@ void PhotoProcessing::processBrightness(const QString& tmpImagePath, const QStri
                     QRgb green = truncatePixelValue(pixelColor.green() * brightness);
                     QRgb blue = truncatePixelValue(pixelColor.blue() * brightness);
 
-                    image.setPixel(i, j, QColor(red, green, blue).rgb());
+                    image.setPixel(i, j, QColor(red, green, blue, pixelColor.alpha()).rgba());
                 }
             }
         }
