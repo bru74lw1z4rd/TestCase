@@ -108,6 +108,7 @@ ApplicationWindow {
             photoProcessing.sourceWidth = photoProcessing.getSourceImageSize(openDialog.file)[0]
             photoProcessing.sourceHeight = photoProcessing.getSourceImageSize(openDialog.file)[1]
 
+            imageOperationsHistory = []
             imageOperationsHistory.push(openDialog.file)
         }
     }
