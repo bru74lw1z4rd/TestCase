@@ -23,11 +23,21 @@ public:
     explicit PhotoProcessing(QObject* parent = nullptr);
 
     ///
+    /// \brief The ImageEditType enum - Тип того, как будет обработано изображение.
+    ///
+    enum ImageEditType {
+        AddWithHistory,
+        AddWithoutHistory
+    };
+    Q_ENUM(ImageEditType)
+
+    ///
     /// \brief setUpNewImage - Функция сохранять новое изображение в tmp папке и устанавливает новое изображение в UI.
     /// \param image - Новое изображение.
     /// \param imagePath - Путь к новому изображению.
+    /// \param imageEditType - Тип того, как будет обработано изображение в QML.
     ///
-    void setUpNewImage(const QImage& image, const QString& imagePath);
+    void setUpNewImage(const QImage& image, const QString& imagePath, const ImageEditType imageEditType);
 
 public slots:
     ///
@@ -53,6 +63,12 @@ public slots:
     /// \param imagePath - Путь к изображению.
     ///
     void processRgbToGray(const QString& imagePath);
+
+    ///
+    /// \brief processToSepia - Функция накладывает филтр сепии.
+    /// \param imagePath - Путь к изображению.
+    ///
+    void processToSepia(const QString& imagePath);
 
     ///
     /// \brief processHue - Устанавливает новый тон изображению.
@@ -122,10 +138,16 @@ public slots:
 
 signals:
     ///
-    /// \brief imageEditChanged - Сигнал передается в qml с целью изменить изображение на новое.
-    /// \param newImagePath - Путь к новому изображению
+    /// \brief imageEditChanged - Сигнал передается в qml с целью изменить изображение на новое и добавить в историю изображение.
+    /// \param newImagePath - Путь к новому изображению.
     ///
     void imageEditChanged(const QString& newImagePath);
+
+    ///
+    /// \brief imageEditWithoutQueueChanged - Сигнал передается в qml с целью изменить изображение на новое, но не добавляет в историю изображение.
+    /// \param newImagePath - Путь к новому изображению.
+    ///
+    void imageEditWithoutQueueChanged(const QString& newImagePath);
 
     ///
     /// \brief loadingStartedChanged - Сигнал передается в qml и запускает экран загрузки, блокирую остальные элементы, которые влияют на класс PhotoProcessing.

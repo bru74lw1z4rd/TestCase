@@ -43,7 +43,7 @@ void PhotoProcessing::processIncreaseScaling(const QString& imagePath)
             }
 
             /* Отправляем новое изображение в qml */
-            setUpNewImage(newImage, imagePath);
+            setUpNewImage(newImage, imagePath, AddWithHistory);
         });
     }
 }
@@ -87,7 +87,7 @@ void PhotoProcessing::processDecreaseScaling(const QString& imagePath)
             }
 
             /* Отправляем новое изображение в qml */
-            setUpNewImage(newImage, imagePath);
+            setUpNewImage(newImage, imagePath, AddWithHistory);
         });
     }
 }
@@ -145,7 +145,7 @@ void PhotoProcessing::processBoxBlur(const QString& imagePath, const int samples
             }
 
             /* Отправляем новое изображение в qml */
-            setUpNewImage(newImage, imagePath);
+            setUpNewImage(newImage, imagePath, AddWithHistory);
         });
     }
 }
@@ -178,7 +178,42 @@ void PhotoProcessing::processRgbToGray(const QString& imagePath)
                 }
             }
 
-            setUpNewImage(image, localFilePath);
+            setUpNewImage(image, localFilePath, AddWithHistory);
+        });
+    }
+}
+
+///
+/// \brief PhotoProcessing::processToSepia - Функция накладывает филтр сепии.
+/// \param imagePath - Путь к изображению.
+///
+void PhotoProcessing::processToSepia(const QString& imagePath)
+{
+    const QString localFilePath = QUrl(imagePath).toLocalFile();
+
+    if (!localFilePath.isEmpty()) {
+        QtConcurrent::run([=]() {
+            /* Передаем сигнал о начале операции в qml */
+            emit loadingStartedChanged();
+
+            QImage image(localFilePath);
+
+            for (int i = 0; i < image.width(); i++) {
+                for (int j = 0; j < image.height(); j++) {
+                    QColor pixelColor = image.pixelColor(i, j);
+
+                    /* Проверяем на прозрачный пиксель */
+                    if (pixelColor.alpha() != 0) {
+                        int red = (pixelColor.red() * .393) + (pixelColor.green() * .769) + (pixelColor.blue() * .189);
+                        int green = (pixelColor.red() * .349) + (pixelColor.green() * .686) + (pixelColor.blue() * .168);
+                        int blue = (pixelColor.red() * .272) + (pixelColor.green() * .534) + (pixelColor.blue() * .131);
+
+                        image.setPixel(i, j, QColor(red, green, blue, pixelColor.alpha()).rgb());
+                    }
+                }
+            }
+
+            setUpNewImage(image, localFilePath, AddWithHistory);
         });
     }
 }
@@ -204,7 +239,7 @@ void PhotoProcessing::processHue(const QString& imagePath, const quint8 hue)
             }
         }
 
-        setUpNewImage(image, localFilePath);
+        setUpNewImage(image, localFilePath, AddWithoutHistory);
     }
 }
 
@@ -244,7 +279,7 @@ void PhotoProcessing::processContrast(const QString& tmpImagePath, const QString
             }
         }
 
-        setUpNewImage(image, savePath);
+        setUpNewImage(image, savePath, AddWithoutHistory);
     }
 }
 
@@ -274,7 +309,7 @@ void PhotoProcessing::processBrightness(const QString& tmpImagePath, const QStri
             }
         }
 
-        setUpNewImage(image, savePath);
+        setUpNewImage(image, savePath, AddWithoutHistory);
     }
 }
 
@@ -301,7 +336,7 @@ void PhotoProcessing::processRotate(const QString& imagePath)
                 }
             }
 
-            setUpNewImage(newImage, localFilePath);
+            setUpNewImage(newImage, localFilePath, AddWithHistory);
         });
     }
 }
@@ -311,13 +346,17 @@ void PhotoProcessing::processRotate(const QString& imagePath)
 /// \param image - Новое изображение.
 /// \param imagePath - Путь к новому изображению.
 ///
-void PhotoProcessing::setUpNewImage(const QImage& image, const QString& imagePath)
+void PhotoProcessing::setUpNewImage(const QImage& image, const QString& imagePath, const ImageEditType imageEditType)
 {
     if (temporaryDir.isValid()) {
-        QFileInfo imageInfo(imagePath);
-        const QString fileName = temporaryDir.path() % "/" % imageInfo.fileName();
+        const QString fileName = temporaryDir.path() % "/" % QString::number(QRandomGenerator::global()->bounded(100000, 999999)) % "." % QFileInfo(imagePath).suffix();
 
         image.save(fileName);
-        emit imageEditChanged(QUrl::fromLocalFile(fileName).toString());
+
+        if (imageEditType == AddWithHistory) {
+            emit imageEditChanged(QUrl::fromLocalFile(fileName).toString());
+        } else if (imageEditType == AddWithoutHistory) {
+            emit imageEditWithoutQueueChanged(QUrl::fromLocalFile(fileName).toString());
+        }
     }
 }

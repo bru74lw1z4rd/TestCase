@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/">
+        <file>mainMenu/restore.svg</file>
+        <file>mainMenu/save.svg</file>
+        <file>mainMenu/open.svg</file>
+        <file>mainMenu/tick.svg</file>
+        <file>mainMenu/rotateLeftVariant.svg</file>
+        <file>mainMenu/decreaseScale.svg</file>
+        <file>mainMenu/increaseScale.svg</file>
+        <file>mainMenu/undo.svg</file>
+        <file>mainMenu/redo.svg</file>
+    </qresource>
+</RCC>

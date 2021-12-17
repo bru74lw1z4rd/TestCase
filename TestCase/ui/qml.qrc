@@ -2,5 +2,6 @@
     <qresource prefix="/">
         <file>main.qml</file>
         <file>qtquickcontrols2.conf</file>
+        <file>Elements/Images/SvgImage.qml</file>
     </qresource>
 </RCC>
