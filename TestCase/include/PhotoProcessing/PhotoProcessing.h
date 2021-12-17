@@ -136,6 +136,22 @@ public slots:
         return "";
     }
 
+    ///
+    /// \brief getSourceImageSize - Функция возвращает размер изображения.
+    /// \param imagePath - Путь к изображению.
+    /// \return Возвращает лист, где на первом месте стоит ширина, а на втором высота.
+    ///
+    inline QVariantList getSourceImageSize(const QString& imagePath)
+    {
+        QImage image(QUrl(imagePath).toLocalFile());
+
+        QVariantList size;
+        size.append(image.width());
+        size.append(image.height());
+
+        return size;
+    }
+
 signals:
     ///
     /// \brief imageEditChanged - Сигнал передается в qml с целью изменить изображение на новое и добавить в историю изображение.

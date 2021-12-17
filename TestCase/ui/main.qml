@@ -22,10 +22,32 @@ ApplicationWindow {
     property var imageOperationsHistory: []
     property int currentOperationInHistory: 0
 
+    property var threadQueue: []
+
+    Timer {
+        id: threadQueueTimer
+
+        interval: 450
+
+        onTriggered: {
+            let i = (threadQueue.length - 1 < 0) ? 0 : threadQueue.length - 1
+
+            if (threadQueue[i][3] === 0) {
+                photoProcessing.processHue(threadQueue[i][1], threadQueue[i][2])
+            } else if (threadQueue[i][3] === 1) {
+                photoProcessing.processBrightness(threadQueue[i][0], threadQueue[i][1], threadQueue[i][2])
+            } else if (threadQueue[i][3] === 2) {
+                photoProcessing.processContrast(threadQueue[i][0], threadQueue[i][1], threadQueue[i][2])
+            }
+        }
+    }
+
     PhotoProcessing {
         id: photoProcessing
 
         property string sourceImage: ""
+        property int sourceWidth: 0
+        property int sourceHeight: 0
 
         property bool isHueProcessingStarted: false
 
@@ -39,6 +61,7 @@ ApplicationWindow {
     /* Функция сбрасывает все значения UI страницы */
     function resetUi() {
         imageOperationsHistory = []
+        imageOperationsHistory.push(photoProcessing.sourceImage)
         currentOperationInHistory = 0
 
         photoProcessing.isHueProcessingStarted = false
@@ -66,19 +89,24 @@ ApplicationWindow {
     }
 
     FileDialog {
-        id: fileDialog
+        id: openDialog
 
         folder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
 
         nameFilters: [ "Image files (*.jpg *.png)" ]
 
         onAccepted: {
-            resetUi()
+            if (photoProcessing.sourceImage !== "") {
+                resetUi()
+            }
 
-            photoProcessing.sourceImage = fileDialog.file
-            image.source = fileDialog.file
+            photoProcessing.sourceImage = openDialog.file
+            image.source = openDialog.file
 
-            imageOperationsHistory.push(fileDialog.file)
+            photoProcessing.sourceWidth = photoProcessing.getSourceImageSize(openDialog.file)[0]
+            photoProcessing.sourceHeight = photoProcessing.getSourceImageSize(openDialog.file)[1]
+
+            imageOperationsHistory.push(openDialog.file)
         }
     }
 
@@ -111,7 +139,7 @@ ApplicationWindow {
                 flat: true
 
                 onClicked: {
-                    fileDialog.open()
+                    openDialog.open()
                 }
 
                 SvgImage {
@@ -327,8 +355,8 @@ ApplicationWindow {
 
         fillMode: Image.PreserveAspectFit
 
-        sourceSize.height: 500
-        sourceSize.width: 500
+        sourceSize.height: 350
+        sourceSize.width: 350
 
         anchors {
             top: parent.top
@@ -478,7 +506,17 @@ ApplicationWindow {
                             photoProcessing.isHueProcessingStarted = true
                         }
 
-                        photoProcessing.processHue(image.source, hueSlider.value)
+                        if (photoProcessing.sourceWidth <= 800 || photoProcessing.sourceHeight <= 800) {
+                            threadQueue.push(["", image.source, hueSlider.value, 0])
+                            photoProcessing.processHue(image.source, hueSlider.value)
+                        } else {
+                            if (threadQueueTimer.running === false) {
+                                threadQueue.push(["", image.source, hueSlider.value, 0])
+                                threadQueueTimer.running = true
+                            } else {
+                                threadQueue.push(["", image.source, hueSlider.value, 0])
+                            }
+                        }
                     }
                 }
 
@@ -549,7 +587,17 @@ ApplicationWindow {
                             photoProcessing.isBrightnessProcessingStarted = true
                         }
 
-                        photoProcessing.processBrightness(photoProcessing.newBrightnessImage, image.source, brightnessSlider.value)
+                        if (photoProcessing.sourceWidth <= 800 || photoProcessing.sourceHeight <= 800) {
+                            threadQueue.push([photoProcessing.newBrightnessImage, image.source, brightnessSlider.value, 1])
+                            photoProcessing.processBrightness(photoProcessing.newBrightnessImage, image.source, brightnessSlider.value)
+                        } else {
+                            if (threadQueueTimer.running === false) {
+                                threadQueue.push([photoProcessing.newBrightnessImage, image.source, brightnessSlider.value, 1])
+                                threadQueueTimer.running = true
+                            } else {
+                                threadQueue.push([photoProcessing.newBrightnessImage, image.source, brightnessSlider.value, 1])
+                            }
+                        }
                     }
                 }
 
@@ -566,6 +614,8 @@ ApplicationWindow {
                     }
 
                     onClicked: {
+                        threadQueue = []
+
                         photoProcessing.isBrightnessProcessingStarted = false
 
                         imageOperationsHistory.push(image.source)
@@ -620,7 +670,17 @@ ApplicationWindow {
                             photoProcessing.isContrastProcessingStarted = true
                         }
 
-                        photoProcessing.processContrast(photoProcessing.newContrastImage, image.source, contrastSlider.value)
+                        if (photoProcessing.sourceWidth <= 800 || photoProcessing.sourceHeight <= 800) {
+                            threadQueue.push([photoProcessing.newContrastImage, image.source, contrastSlider.value, 2])
+                            photoProcessing.processContrast(photoProcessing.newContrastImage, image.source, contrastSlider.value)
+                        } else {
+                            if (threadQueueTimer.running === false) {
+                                threadQueue.push([photoProcessing.newContrastImage, image.source, contrastSlider.value, 2])
+                                threadQueueTimer.running = true
+                            } else {
+                                threadQueue.push([photoProcessing.newContrastImage, image.source, contrastSlider.value, 2])
+                            }
+                        }
                     }
                 }
 
@@ -743,6 +803,22 @@ ApplicationWindow {
 
             image.source = ""
             image.source = filePath
+
+            if (threadQueue.length > 0 && (photoProcessing.sourceWidth <= 800 || photoProcessing.sourceHeight <= 800)) {
+                threadQueue.pop()
+
+                if (threadQueue.length !== 0) {
+                    let i = (threadQueue.length - 1 < 0) ? 0 : threadQueue.length - 1
+
+                    if (threadQueue[i][3] === 0) {
+                        photoProcessing.processHue(threadQueue[i][1], threadQueue[i][2])
+                    } else if (threadQueue[i][3] === 1) {
+                        photoProcessing.processBrightness(threadQueue[i][0], threadQueue[i][1], threadQueue[i][2])
+                    } else if (threadQueue[i][3] === 2) {
+                        photoProcessing.processContrast(threadQueue[i][0], threadQueue[i][1], threadQueue[i][2])
+                    }
+                }
+            }
         }
 
         function onLoadingStartedChanged() {
