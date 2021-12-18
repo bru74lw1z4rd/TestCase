@@ -1,10 +1,11 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtQuick.Controls.Material 2.12
-
 import Qt.labs.platform 1.1
 
 import PhotoProcessing 1.0
+
+import "qrc:/Elements/Images/"
 
 ApplicationWindow {
     id: applicationWindow
@@ -18,10 +19,37 @@ ApplicationWindow {
     Material.theme: Material.Dark
     Material.accent: Material.Indigo
 
+    property var imageOperationsHistory: []
+    property int currentOperationInHistory: 0
+
+    property var threadQueue: []
+
+    Timer {
+        id: threadQueueTimer
+
+        interval: 450
+
+        onTriggered: {
+            let i = (threadQueue.length - 1 < 0) ? 0 : threadQueue.length - 1
+
+            if (threadQueue[i][3] === 0) {
+                photoProcessing.processHue(threadQueue[i][1], threadQueue[i][2])
+            } else if (threadQueue[i][3] === 1) {
+                photoProcessing.processBrightness(threadQueue[i][0], threadQueue[i][1], threadQueue[i][2])
+            } else if (threadQueue[i][3] === 2) {
+                photoProcessing.processContrast(threadQueue[i][0], threadQueue[i][1], threadQueue[i][2])
+            }
+        }
+    }
+
     PhotoProcessing {
         id: photoProcessing
 
         property string sourceImage: ""
+        property int sourceWidth: 0
+        property int sourceHeight: 0
+
+        property bool isHueProcessingStarted: false
 
         property bool isBrightnessProcessingStarted: false
         property string newBrightnessImage: ""
@@ -32,6 +60,13 @@ ApplicationWindow {
 
     /* Функция сбрасывает все значения UI страницы */
     function resetUi() {
+        imageOperationsHistory = []
+        imageOperationsHistory.push(photoProcessing.sourceImage)
+        currentOperationInHistory = 0
+
+        threadQueue = []
+
+        photoProcessing.isHueProcessingStarted = false
         photoProcessing.isBrightnessProcessingStarted = false
         photoProcessing.isContrastProcessingStarted = false
         photoProcessing.newBrightnessImage = ""
@@ -56,50 +91,36 @@ ApplicationWindow {
     }
 
     FileDialog {
-        id: fileDialog
+        id: openDialog
 
         folder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
 
         nameFilters: [ "Image files (*.jpg *.png)" ]
 
         onAccepted: {
-            resetUi()
+            if (photoProcessing.sourceImage !== "") {
+                resetUi()
+            }
 
-            photoProcessing.sourceImage = fileDialog.file
-            image.source = fileDialog.file
+            photoProcessing.sourceImage = openDialog.file
+            image.source = openDialog.file
+
+            photoProcessing.sourceWidth = photoProcessing.getSourceImageSize(openDialog.file)[0]
+            photoProcessing.sourceHeight = photoProcessing.getSourceImageSize(openDialog.file)[1]
+
+            imageOperationsHistory = []
+            imageOperationsHistory.push(openDialog.file)
         }
     }
 
     Rectangle {
-        id: mainMenuBackground
-
-        color: "#4d4d4d"
-
-        anchors {
-            fill: mainMenu
-        }
-    }
-
-    Rectangle {
-        id: rightMenuBackground
-
-        width: rightMenuFlickable.width
-
-        color: "#4d4d4d"
-
-        anchors {
-            top: parent.top
-            right: parent.right
-            bottom: parent.bottom
-        }
-    }
-
-    Column {
         id: mainMenu
+
+        width: 50
 
         enabled: imageBusyIndicatorLoader.active === false
 
-        width: 200        
+        color: "#4d4d4d"
 
         anchors {
             top: parent.top
@@ -107,43 +128,225 @@ ApplicationWindow {
             bottom: parent.bottom
         }
 
-        ItemDelegate {
-            width: parent.width
-
-            text: "Выбрать изображение"
-
-            highlighted: true
-
-            onClicked: {
-                fileDialog.open()
+        Column {
+            anchors {
+                fill: parent
             }
-        }
 
-        ItemDelegate {
-            width: parent.width
+            RoundButton {
+                id: openFileButton
 
-            text: "Сохранить изображение"
+                height: width
+                width: parent.width
 
-            enabled: (image.source == "") ? false : true
+                flat: true
 
-            highlighted: true
+                onClicked: {
+                    openDialog.open()
+                }
 
-            onClicked:  {
-                saveFileDialog.open()
+                SvgImage {
+                    imageSource: "qrc:/mainMenu/open.svg"
+                    imageColor: "white"
+
+                    anchors {
+                        fill: parent
+
+                        margins: 10
+                    }
+                }
             }
-        }
 
-        ItemDelegate {
-            width: parent.width
+            RoundButton {
+                id: saveFileButton
 
-            text: "Восстановить изображение"
+                height: width
+                width: parent.width
 
-            highlighted: true
+                enabled: (image.source == "") ? false : true
 
-            onClicked: {
-                resetUi()
+                flat: true
 
-                image.source = photoProcessing.sourceImage
+                onClicked: {
+                    saveFileDialog.open()
+                }
+
+                SvgImage {
+                    imageSource: "qrc:/mainMenu/save.svg"
+                    imageColor: (parent.enabled === true) ? "white" : "gray"
+
+                    anchors {
+                        fill: parent
+
+                        margins: 10
+                    }
+                }
+            }
+
+            RoundButton {
+                id: rotateImageButton
+
+                height: width
+                width: parent.width
+
+                enabled: (image.source == "") ? false : true
+
+                flat: true
+
+                onClicked: {
+                    photoProcessing.processRotate(image.source)
+                }
+
+                SvgImage {
+                    imageSource: "qrc:/mainMenu/rotateLeftVariant.svg"
+                    imageColor: (parent.enabled === true) ? "white" : "gray"
+
+                    anchors {
+                        fill: parent
+
+                        margins: 10
+                    }
+                }
+            }
+
+            RoundButton {
+                id: increaseImageButton
+
+                height: width
+                width: parent.width
+
+                enabled: (image.source == "") ? false : true
+
+                flat: true
+
+                onClicked: {
+                    photoProcessing.processIncreaseScaling(image.source)
+                }
+
+                SvgImage {
+                    imageSource: "qrc:/mainMenu/increaseScale.svg"
+                    imageColor: (parent.enabled === true) ? "white" : "gray"
+
+                    anchors {
+                        fill: parent
+
+                        margins: 10
+                    }
+                }
+            }
+
+            RoundButton {
+                id: decreaseImageButton
+
+                height: width
+                width: parent.width
+
+                enabled: (image.source == "") ? false : true
+
+                flat: true
+
+                onClicked: {
+                    photoProcessing.processDecreaseScaling(image.source)
+                }
+
+                SvgImage {
+                    imageSource: "qrc:/mainMenu/decreaseScale.svg"
+                    imageColor: (parent.enabled === true) ? "white" : "gray"
+
+                    anchors {
+                        fill: parent
+
+                        margins: 10
+                    }
+                }
+            }
+
+            RoundButton {
+                id: redoButton
+
+                height: width
+                width: parent.width
+
+                enabled: (currentOperationInHistory + 1 < imageOperationsHistory.length) ? true : false
+
+                flat: true
+
+                onClicked: {
+                    if (currentOperationInHistory + 1 < imageOperationsHistory.length) {
+                        currentOperationInHistory += 1
+
+                        image.source = ""
+                        image.source = imageOperationsHistory[currentOperationInHistory]
+                    }
+                }
+
+                SvgImage {
+                    imageSource: "qrc:/mainMenu/redo.svg"
+                    imageColor: (parent.enabled === true) ? "white" : "gray"
+
+                    anchors {
+                        fill: parent
+
+                        margins: 10
+                    }
+                }
+            }
+
+            RoundButton {
+                id: undoButton
+
+                height: width
+                width: parent.width
+
+                enabled: (currentOperationInHistory > 0) ? true : false
+
+                flat: true
+
+                onClicked: {
+                    if (currentOperationInHistory !== 0) {
+                        currentOperationInHistory -= 1
+
+                        image.source = ""
+                        image.source = imageOperationsHistory[currentOperationInHistory]
+                    }
+                }
+
+                SvgImage {
+                    imageSource: "qrc:/mainMenu/undo.svg"
+                    imageColor: (parent.enabled === true) ? "white" : "gray"
+
+                    anchors {
+                        fill: parent
+
+                        margins: 10
+                    }
+                }
+            }
+
+            RoundButton {
+                id: restoreFileButton
+
+                height: width
+                width: parent.width
+
+                flat: true
+
+                onClicked: {
+                    resetUi()
+
+                    image.source = photoProcessing.sourceImage
+                }
+
+                SvgImage {
+                    imageSource: "qrc:/mainMenu/restore.svg"
+                    imageColor: "white"
+
+                    anchors {
+                        fill: parent
+
+                        margins: 10
+                    }
+                }
             }
         }
     }
@@ -155,14 +358,16 @@ ApplicationWindow {
 
         fillMode: Image.PreserveAspectFit
 
-        sourceSize.height: 500
-        sourceSize.width: 500
+        sourceSize.height: 350
+        sourceSize.width: 350
 
         anchors {
             top: parent.top
             left: mainMenu.right
             right: rightMenuFlickable.left
             bottom: parent.bottom
+
+            margins: 10
         }
 
         Rectangle {
@@ -193,12 +398,23 @@ ApplicationWindow {
         }
     }
 
+    Rectangle {
+        id: rightMenuBackground
+
+        color: "#4d4d4d"
+
+        anchors {
+            fill: rightMenuFlickable
+        }
+    }
+
     Flickable {
         id: rightMenuFlickable
 
-        width: 200
+        width: 250
+        contentHeight: checkDelegatesColumn.implicitHeight + slidersDelegatesColumn.implicitHeight
 
-        contentHeight: rightMenu.height
+        enabled: imageBusyIndicatorLoader.active === false
 
         boundsBehavior: Flickable.StopAtBounds
 
@@ -206,75 +422,161 @@ ApplicationWindow {
             top: parent.top
             right: parent.right
             bottom: parent.bottom
-
-            topMargin: 15
-            bottomMargin: 15
         }
 
         Column {
-            id: rightMenu
+            id: checkDelegatesColumn
+
+            spacing: 0
+
+            enabled: image.source != ""
+
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
+            }
+
+            ItemDelegate {
+                width: parent.width
+
+                text: "Эффект сепии"
+
+                onClicked: {
+                    photoProcessing.processToSepia(image.source)
+                }
+            }
+
+            ItemDelegate {
+                width: parent.width
+
+                text: "Эффект серого"
+
+                onClicked: {
+                    photoProcessing.processRgbToGray(image.source)
+                }
+            }
+
+            ToolSeparator {
+                width: parent.width
+
+                orientation: "Horizontal"
+            }
+        }
+
+        Column {
+            id: slidersDelegatesColumn
 
             spacing: 12
 
             enabled: imageBusyIndicatorLoader.active === false
 
             anchors {
-                fill: parent
+                top: checkDelegatesColumn.bottom
+                left: parent.left
+                right: parent.right
             }
 
-            Column {
-                height: hueHeading.implicitHeight + hueSlider.implicitHeight + contrastHeading.implicitHeight + hueSeperator.implicitHeight + brightnessApplyButton.implicitHeight
-                        + brightnessSeperator.implicitHeight + contrastSlider.implicitHeight + brightnessHeading.implicitHeight + brightnessSlider.implicitHeight + slidersApplyButton.implicitHeight
+            Row {
+                height: children[1].height
                 width: parent.width
 
-                Text {
-                    id: hueHeading
+                spacing: 10
 
-                    width: parent.width
+                Text {
+                    height: parent.height
 
                     text: qsTr("HUE")
                     color: "white"
 
-                    font.pointSize: 16
-                    horizontalAlignment: Text.AlignHCenter
+                    font.pointSize: 11
+                    verticalAlignment: Text.AlignVCenter
+
+                    leftPadding: 16
                 }
 
                 Slider {
                     id: hueSlider
+
+                    width: parent.width - parent.children[0].width - parent.children[0].leftPadding - parent.children[2].width - 10
 
                     from: 0
                     value: 0
                     to: 255
 
                     onMoved: {
-                        photoProcessing.processHue(image.source, hueSlider.value)
+                        if (photoProcessing.isHueProcessingStarted === false) {
+                            photoProcessing.isHueProcessingStarted = true
+                        }
+
+                        if (photoProcessing.sourceWidth <= 800 || photoProcessing.sourceHeight <= 800) {
+                            threadQueue.push(["", image.source, hueSlider.value, 0])
+                            photoProcessing.processHue(image.source, hueSlider.value)
+                        } else {
+                            if (threadQueueTimer.running === false) {
+                                threadQueue.push(["", image.source, hueSlider.value, 0])
+                                threadQueueTimer.running = true
+                            } else {
+                                threadQueue.push(["", image.source, hueSlider.value, 0])
+                            }
+                        }
                     }
                 }
 
-                ToolSeparator {
-                    id: hueSeperator
+                RoundButton {
+                    width: parent.height
+                    height: parent.height
 
-                    width: parent.width
+                    enabled: photoProcessing.isHueProcessingStarted === true
 
-                    orientation: "Horizontal"
+                    flat: true
+
+                    anchors {
+                        verticalCenter: parent.verticalCenter
+                    }
+
+                    onClicked: {
+                        photoProcessing.isHueProcessingStarted = false
+
+                        imageOperationsHistory.push(image.source)
+                        currentOperationInHistory = imageOperationsHistory.length - 1
+                    }
+
+                    SvgImage {
+                        imageSource: "qrc:/mainMenu/tick.svg"
+                        imageColor: (photoProcessing.isHueProcessingStarted === true) ? "white" : "gray"
+
+                        anchors {
+                            fill: parent
+
+                            margins: 10
+                        }
+                    }
                 }
+            }
+
+            Row {
+                height: children[1].height
+                width: parent.width
+
+                spacing: 10
 
                 Text {
-                    id: brightnessHeading
-
-                    enabled: photoProcessing.isContrastProcessingStarted === false
-
-                    width: parent.width
+                    height: parent.height
 
                     text: qsTr("Яркость")
                     color: "white"
 
-                    font.pointSize: 16
-                    horizontalAlignment: Text.AlignHCenter
+                    font.pointSize: 10
+                    verticalAlignment: Text.AlignVCenter
+
+                    leftPadding: 16
                 }
 
                 Slider {
                     id: brightnessSlider
+
+                    width: parent.width - parent.children[0].width - parent.children[0].leftPadding - parent.children[2].width - 10
 
                     enabled: photoProcessing.isContrastProcessingStarted === false
 
@@ -288,50 +590,76 @@ ApplicationWindow {
                             photoProcessing.isBrightnessProcessingStarted = true
                         }
 
-                        photoProcessing.processBrightness(photoProcessing.newBrightnessImage, image.source, brightnessSlider.value)
+                        if (photoProcessing.sourceWidth <= 800 || photoProcessing.sourceHeight <= 800) {
+                            threadQueue.push([photoProcessing.newBrightnessImage, image.source, brightnessSlider.value, 1])
+                            photoProcessing.processBrightness(photoProcessing.newBrightnessImage, image.source, brightnessSlider.value)
+                        } else {
+                            if (threadQueueTimer.running === false) {
+                                threadQueue.push([photoProcessing.newBrightnessImage, image.source, brightnessSlider.value, 1])
+                                threadQueueTimer.running = true
+                            } else {
+                                threadQueue.push([photoProcessing.newBrightnessImage, image.source, brightnessSlider.value, 1])
+                            }
+                        }
                     }
                 }
 
-                ItemDelegate {
-                    id: brightnessApplyButton
+                RoundButton {
+                    width: parent.height
+                    height: parent.height
 
-                    enabled: photoProcessing.isContrastProcessingStarted === false
+                    enabled: photoProcessing.isBrightnessProcessingStarted === true
 
-                    width: parent.width
+                    flat: true
 
-                    text: "Применить"
-
-                    highlighted: true
+                    anchors {
+                        verticalCenter: parent.verticalCenter
+                    }
 
                     onClicked: {
+                        threadQueue = []
+
                         photoProcessing.isBrightnessProcessingStarted = false
+
+                        imageOperationsHistory.push(image.source)
+                        currentOperationInHistory = imageOperationsHistory.length - 1
+                    }
+
+                    SvgImage {
+                        imageSource: "qrc:/mainMenu/tick.svg"
+                        imageColor: (photoProcessing.isBrightnessProcessingStarted === true) ? "white" : "gray"
+
+                        anchors {
+                            fill: parent
+
+                            margins: 10
+                        }
                     }
                 }
+            }
 
-                ToolSeparator {
-                    id: brightnessSeperator
+            Row {
+                height: children[1].height
+                width: parent.width
 
-                    width: parent.width
-
-                    orientation: "Horizontal"
-                }
+                spacing: 10
 
                 Text {
-                    id: contrastHeading
+                    height: parent.height
 
-                    enabled: photoProcessing.isBrightnessProcessingStarted === false
-
-                    width: parent.width
-
-                    text: qsTr("Контрастность")
+                    text: qsTr("Контраст")
                     color: "white"
 
-                    font.pointSize: 16
-                    horizontalAlignment: Text.AlignHCenter
+                    font.pointSize: 10
+                    verticalAlignment: Text.AlignVCenter
+
+                    leftPadding: 16
                 }
 
                 Slider {
                     id: contrastSlider
+
+                    width: parent.width - parent.children[0].width - parent.children[0].leftPadding - parent.children[2].width - 10
 
                     enabled: photoProcessing.isBrightnessProcessingStarted === false
 
@@ -345,91 +673,49 @@ ApplicationWindow {
                             photoProcessing.isContrastProcessingStarted = true
                         }
 
-                        photoProcessing.processContrast(photoProcessing.newContrastImage, image.source, contrastSlider.value)
+                        if (photoProcessing.sourceWidth <= 800 || photoProcessing.sourceHeight <= 800) {
+                            threadQueue.push([photoProcessing.newContrastImage, image.source, contrastSlider.value, 2])
+                            photoProcessing.processContrast(photoProcessing.newContrastImage, image.source, contrastSlider.value)
+                        } else {
+                            if (threadQueueTimer.running === false) {
+                                threadQueue.push([photoProcessing.newContrastImage, image.source, contrastSlider.value, 2])
+                                threadQueueTimer.running = true
+                            } else {
+                                threadQueue.push([photoProcessing.newContrastImage, image.source, contrastSlider.value, 2])
+                            }
+                        }
                     }
                 }
 
-                ItemDelegate {
-                    id: slidersApplyButton
+                RoundButton {
+                    width: parent.height
+                    height: parent.height
 
-                    enabled: photoProcessing.isBrightnessProcessingStarted === false
+                    enabled: photoProcessing.isContrastProcessingStarted === true
 
-                    width: parent.width
+                    flat: true
 
-                    text: "Применить"
-
-                    highlighted: true
+                    anchors {
+                        verticalCenter: parent.verticalCenter
+                    }
 
                     onClicked: {
                         photoProcessing.isContrastProcessingStarted = false
+
+                        imageOperationsHistory.push(image.source)
+                        currentOperationInHistory = imageOperationsHistory.length - 1
                     }
-                }
-            }
 
-            ToolSeparator {
-                width: parent.width
+                    SvgImage {
+                        imageSource: "qrc:/mainMenu/tick.svg"
+                        imageColor: (photoProcessing.isContrastProcessingStarted === true) ? "white" : "gray"
 
-                orientation: "Horizontal"
-            }
+                        anchors {
+                            fill: parent
 
-            ItemDelegate {
-                width: parent.width
-
-                text: "Повернуть"
-
-                highlighted: true
-
-                onClicked: {
-                    photoProcessing.processRotate(image.source)
-                }
-            }
-
-            ItemDelegate {
-                width: parent.width
-
-                text: "RGB в серый"
-
-                highlighted: true
-
-                onClicked: {
-                    photoProcessing.processRgbToGray(image.source)
-                }
-            }
-
-            Text {
-                width: parent.width
-
-                text: qsTr("Box Blur")
-                color: "white"
-
-                font.pointSize: 16
-                horizontalAlignment: Text.AlignHCenter
-            }
-
-            TextField {
-                id: boxBlurSamples
-
-                width: parent.width
-
-                text: "1"
-
-                placeholderText: "1"
-
-                selectByMouse: true
-
-                leftPadding: 4
-                rightPadding: 4
-            }
-
-            ItemDelegate {
-                width: parent.width
-
-                text: "Применить"
-
-                highlighted: true
-
-                onClicked: {
-                    photoProcessing.processBoxBlur(image.source, boxBlurSamples.text)
+                            margins: 10
+                        }
+                    }
                 }
             }
 
@@ -440,31 +726,62 @@ ApplicationWindow {
             }
 
             Row {
+                height: children[1].height
                 width: parent.width
 
-                spacing: 5
+                spacing: 10
 
-                ItemDelegate {
-                    width: parent.width / 2
+                Text {
+                    height: parent.height
 
-                    text: "+"
+                    text: qsTr("Box Blur")
+                    color: "white"
 
-                    highlighted: true
+                    font.pointSize: 10
+                    verticalAlignment: Text.AlignVCenter
 
-                    onClicked: {
-                        photoProcessing.processIncreaseScaling(image.source)
-                    }
+                    leftPadding: 16
                 }
 
-                ItemDelegate {
-                    width: parent.width / 2
+                TextField {
+                    id: boxBlurSamples
 
-                    text: "-"
+                    width: parent.width - parent.children[0].width - parent.children[0].leftPadding - parent.children[2].width - 10
 
-                    highlighted: true
+                    text: "1"
+                    placeholderText: "Количество"
+
+                    selectByMouse: true
+
+                    leftPadding: 4
+                    rightPadding: 4
+                }
+
+                RoundButton {
+                    width: parent.height
+                    height: parent.height
+
+                    enabled: (boxBlurSamples.displayText.length > 0 && image.source != "")
+
+                    flat: true
+
+                    anchors {
+                        verticalCenter: parent.verticalCenter
+                    }
 
                     onClicked: {
-                        photoProcessing.processDecreaseScaling(image.source)
+                        photoProcessing.processBoxBlur(image.source, boxBlurSamples.text)
+                    }
+
+                    SvgImage {
+                        imageSource: "qrc:/mainMenu/tick.svg"
+                        imageColor: (parent.enabled === true) ? "white" : "gray"
+
+                        anchors {
+                            fill: parent
+
+                            margins: 10
+                        }
                     }
                 }
             }
@@ -477,8 +794,34 @@ ApplicationWindow {
         function onImageEditChanged(filePath) {
             imageBusyIndicatorLoader.active = false
 
+            imageOperationsHistory.push(filePath)
+            currentOperationInHistory = imageOperationsHistory.length - 1
+
             image.source = ""
             image.source = filePath
+        }
+
+        function onImageEditWithoutQueueChanged(filePath) {
+            imageBusyIndicatorLoader.active = false
+
+            image.source = ""
+            image.source = filePath
+
+            if (threadQueue.length > 0 && (photoProcessing.sourceWidth <= 800 || photoProcessing.sourceHeight <= 800)) {
+                threadQueue.pop()
+
+                if (threadQueue.length !== 0) {
+                    let i = (threadQueue.length - 1 < 0) ? 0 : threadQueue.length - 1
+
+                    if (threadQueue[i][3] === 0) {
+                        photoProcessing.processHue(threadQueue[i][1], threadQueue[i][2])
+                    } else if (threadQueue[i][3] === 1) {
+                        photoProcessing.processBrightness(threadQueue[i][0], threadQueue[i][1], threadQueue[i][2])
+                    } else if (threadQueue[i][3] === 2) {
+                        photoProcessing.processContrast(threadQueue[i][0], threadQueue[i][1], threadQueue[i][2])
+                    }
+                }
+            }
         }
 
         function onLoadingStartedChanged() {

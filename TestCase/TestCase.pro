@@ -1,4 +1,5 @@
 QT += quick
+QT += svg
 QT += gui
 QT += widgets
 QT += concurrent
@@ -12,7 +13,8 @@ SOURCES += \
         sources/PhotoProcessing/PhotoProcessing.cpp \
         sources/main.cpp
 
-RESOURCES += ui/qml.qrc
+RESOURCES += ui/qml.qrc \
+    assets/assets.qrc
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

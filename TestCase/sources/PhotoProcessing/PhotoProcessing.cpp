@@ -43,7 +43,7 @@ void PhotoProcessing::processIncreaseScaling(const QString& imagePath)
             }
 
             /* Отправляем новое изображение в qml */
-            setUpNewImage(newImage, imagePath);
+            setUpNewImage(newImage, imagePath, AddWithHistory);
         });
     }
 }
@@ -87,7 +87,7 @@ void PhotoProcessing::processDecreaseScaling(const QString& imagePath)
             }
 
             /* Отправляем новое изображение в qml */
-            setUpNewImage(newImage, imagePath);
+            setUpNewImage(newImage, imagePath, AddWithHistory);
         });
     }
 }
@@ -145,7 +145,7 @@ void PhotoProcessing::processBoxBlur(const QString& imagePath, const int samples
             }
 
             /* Отправляем новое изображение в qml */
-            setUpNewImage(newImage, imagePath);
+            setUpNewImage(newImage, imagePath, AddWithHistory);
         });
     }
 }
@@ -178,7 +178,42 @@ void PhotoProcessing::processRgbToGray(const QString& imagePath)
                 }
             }
 
-            setUpNewImage(image, localFilePath);
+            setUpNewImage(image, localFilePath, AddWithHistory);
+        });
+    }
+}
+
+///
+/// \brief PhotoProcessing::processToSepia - Функция накладывает филтр сепии.
+/// \param imagePath - Путь к изображению.
+///
+void PhotoProcessing::processToSepia(const QString& imagePath)
+{
+    const QString localFilePath = QUrl(imagePath).toLocalFile();
+
+    if (!localFilePath.isEmpty()) {
+        QtConcurrent::run([=]() {
+            /* Передаем сигнал о начале операции в qml */
+            emit loadingStartedChanged();
+
+            QImage image(localFilePath);
+
+            for (int i = 0; i < image.width(); i++) {
+                for (int j = 0; j < image.height(); j++) {
+                    QColor pixelColor = image.pixelColor(i, j);
+
+                    /* Проверяем на прозрачный пиксель */
+                    if (pixelColor.alpha() != 0) {
+                        int red = (pixelColor.red() * .393) + (pixelColor.green() * .769) + (pixelColor.blue() * .189);
+                        int green = (pixelColor.red() * .349) + (pixelColor.green() * .686) + (pixelColor.blue() * .168);
+                        int blue = (pixelColor.red() * .272) + (pixelColor.green() * .534) + (pixelColor.blue() * .131);
+
+                        image.setPixel(i, j, QColor(red, green, blue, pixelColor.alpha()).rgb());
+                    }
+                }
+            }
+
+            setUpNewImage(image, localFilePath, AddWithHistory);
         });
     }
 }
@@ -193,18 +228,20 @@ void PhotoProcessing::processHue(const QString& imagePath, const quint8 hue)
     const QString localFilePath = QUrl(imagePath).toLocalFile();
 
     if (!localFilePath.isEmpty()) {
-        QImage image(localFilePath);
+        QtConcurrent::run([=]() {
+            QImage image(localFilePath);
 
-        for (int i = 0; i < image.width(); i++) {
-            for (int j = 0; j < image.height(); j++) {
-                QColor pixelColor = image.pixelColor(i, j);
+            for (int i = 0; i < image.width(); i++) {
+                for (int j = 0; j < image.height(); j++) {
+                    QColor pixelColor = image.pixelColor(i, j);
 
-                pixelColor.setHsv(hue, pixelColor.saturation(), pixelColor.value(), pixelColor.alpha());
-                image.setPixelColor(i, j, pixelColor);
+                    pixelColor.setHsv(hue, pixelColor.saturation(), pixelColor.value(), pixelColor.alpha());
+                    image.setPixelColor(i, j, pixelColor);
+                }
             }
-        }
 
-        setUpNewImage(image, localFilePath);
+            setUpNewImage(image, localFilePath, AddWithoutHistory);
+        });
     }
 }
 
@@ -217,34 +254,36 @@ void PhotoProcessing::processHue(const QString& imagePath, const quint8 hue)
 void PhotoProcessing::processContrast(const QString& tmpImagePath, const QString& savePath, const qint8 contrast)
 {
     if (!tmpImagePath.isEmpty()) {
-        QImage image(tmpImagePath);
+        QtConcurrent::run([=]() {
+            QImage image(tmpImagePath);
 
-        /*
-         * Высчитываем коэффициент коррекции контраста по формуле: (259 * (C + 255)) / (255 * (259 - C))
-         * Где C - введеное пользователем значение.
-         */
-        float factor = (259.0 * (contrast + 255.0)) / (255.0 * (259.0 - contrast));
+            /*
+             * Высчитываем коэффициент коррекции контраста по формуле: (259 * (C + 255)) / (255 * (259 - C))
+             * Где C - введеное пользователем значение.
+             */
+            float factor = (259.0 * (contrast + 255.0)) / (255.0 * (259.0 - contrast));
 
-        for (int i = 0; i < image.width(); i++) {
-            for (int j = 0; j < image.height(); j++) {
-                QColor pixelColor = image.pixelColor(i, j);
+            for (int i = 0; i < image.width(); i++) {
+                for (int j = 0; j < image.height(); j++) {
+                    QColor pixelColor = image.pixelColor(i, j);
 
-                /* Проверяем на прозрачный пиксель */
-                if (pixelColor.alpha() != 0) {
-                    /*
-                     * Высчитываем новый цвет по формуле: C' = F * (C - 128) + 128
-                     * Где C - цвет, а F - коэффициент коррекции контраста.
-                     */
-                    QRgb red = truncatePixelValue(factor * (pixelColor.red() - 128) + 128);
-                    QRgb green = truncatePixelValue(factor * (pixelColor.green() - 128) + 128);
-                    QRgb blue = truncatePixelValue(factor * (pixelColor.blue() - 128) + 128);
+                    /* Проверяем на прозрачный пиксель */
+                    if (pixelColor.alpha() != 0) {
+                        /*
+                         * Высчитываем новый цвет по формуле: C' = F * (C - 128) + 128
+                         * Где C - цвет, а F - коэффициент коррекции контраста.
+                         */
+                        QRgb red = truncatePixelValue(factor * (pixelColor.red() - 128) + 128);
+                        QRgb green = truncatePixelValue(factor * (pixelColor.green() - 128) + 128);
+                        QRgb blue = truncatePixelValue(factor * (pixelColor.blue() - 128) + 128);
 
-                    image.setPixel(i, j, QColor(red, green, blue, pixelColor.alpha()).rgba());
+                        image.setPixel(i, j, QColor(red, green, blue, pixelColor.alpha()).rgba());
+                    }
                 }
             }
-        }
 
-        setUpNewImage(image, savePath);
+            setUpNewImage(image, savePath, AddWithoutHistory);
+        });
     }
 }
 
@@ -257,24 +296,26 @@ void PhotoProcessing::processContrast(const QString& tmpImagePath, const QString
 void PhotoProcessing::processBrightness(const QString& tmpImagePath, const QString& savePath, const float brightness)
 {
     if (!tmpImagePath.isEmpty()) {
-        QImage image(tmpImagePath);
+        QtConcurrent::run([=]() {
+            QImage image(tmpImagePath);
 
-        for (int i = 0; i < image.width(); i++) {
-            for (int j = 0; j < image.height(); j++) {
-                QColor pixelColor = image.pixelColor(i, j);
+            for (int i = 0; i < image.width(); i++) {
+                for (int j = 0; j < image.height(); j++) {
+                    QColor pixelColor = image.pixelColor(i, j);
 
-                /* Проверяем на прозрачный пиксель */
-                if (pixelColor.red() != 0 && pixelColor.green() != 0 && pixelColor.blue() != 0 && pixelColor.alpha() != 0) {
-                    QRgb red = truncatePixelValue(pixelColor.red() * brightness);
-                    QRgb green = truncatePixelValue(pixelColor.green() * brightness);
-                    QRgb blue = truncatePixelValue(pixelColor.blue() * brightness);
+                    /* Проверяем на прозрачный пиксель */
+                    if (pixelColor.red() != 0 && pixelColor.green() != 0 && pixelColor.blue() != 0 && pixelColor.alpha() != 0) {
+                        QRgb red = truncatePixelValue(pixelColor.red() * brightness);
+                        QRgb green = truncatePixelValue(pixelColor.green() * brightness);
+                        QRgb blue = truncatePixelValue(pixelColor.blue() * brightness);
 
-                    image.setPixel(i, j, QColor(red, green, blue, pixelColor.alpha()).rgba());
+                        image.setPixel(i, j, QColor(red, green, blue, pixelColor.alpha()).rgba());
+                    }
                 }
             }
-        }
 
-        setUpNewImage(image, savePath);
+            setUpNewImage(image, savePath, AddWithoutHistory);
+        });
     }
 }
 
@@ -301,7 +342,7 @@ void PhotoProcessing::processRotate(const QString& imagePath)
                 }
             }
 
-            setUpNewImage(newImage, localFilePath);
+            setUpNewImage(newImage, localFilePath, AddWithHistory);
         });
     }
 }
@@ -311,13 +352,17 @@ void PhotoProcessing::processRotate(const QString& imagePath)
 /// \param image - Новое изображение.
 /// \param imagePath - Путь к новому изображению.
 ///
-void PhotoProcessing::setUpNewImage(const QImage& image, const QString& imagePath)
+void PhotoProcessing::setUpNewImage(const QImage& image, const QString& imagePath, const ImageEditType imageEditType)
 {
     if (temporaryDir.isValid()) {
-        QFileInfo imageInfo(imagePath);
-        const QString fileName = temporaryDir.path() % "/" % imageInfo.fileName();
+        const QString fileName = temporaryDir.path() % "/" % QString::number(QRandomGenerator::global()->bounded(100000, 999999)) % "." % QFileInfo(imagePath).suffix();
 
         image.save(fileName);
-        emit imageEditChanged(QUrl::fromLocalFile(fileName).toString());
+
+        if (imageEditType == AddWithHistory) {
+            emit imageEditChanged(QUrl::fromLocalFile(fileName).toString());
+        } else if (imageEditType == AddWithoutHistory) {
+            emit imageEditWithoutQueueChanged(QUrl::fromLocalFile(fileName).toString());
+        }
     }
 }
