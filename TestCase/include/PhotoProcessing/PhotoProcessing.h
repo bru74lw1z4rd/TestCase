@@ -31,14 +31,6 @@ public:
     };
     Q_ENUM(ImageEditType)
 
-    ///
-    /// \brief setUpNewImage - Функция сохранять новое изображение в tmp папке и устанавливает новое изображение в UI.
-    /// \param image - Новое изображение.
-    /// \param imagePath - Путь к новому изображению.
-    /// \param imageEditType - Тип того, как будет обработано изображение в QML.
-    ///
-    void setUpNewImage(const QImage& image, const QString& imagePath, const ImageEditType imageEditType);
-
 public slots:
     ///
     /// \brief processIncreaseScaling - Функция увеличивает изображение на 2.
@@ -123,7 +115,7 @@ public slots:
     /// \param imagePath - Путь к изображению.
     /// \return Путь к временному изображению.
     ///
-    inline QString createTempImage(const QString& imagePath)
+    [[nodiscard]] inline QString createTempImage(const QString& imagePath)
     {
         QFileInfo imageInfo(QUrl(imagePath).toLocalFile());
 
@@ -141,7 +133,7 @@ public slots:
     /// \param imagePath - Путь к изображению.
     /// \return Возвращает лист, где на первом месте стоит ширина, а на втором высота.
     ///
-    inline QVariantList getSourceImageSize(const QString& imagePath)
+    [[nodiscard]] inline QVariantList getSourceImageSize(const QString& imagePath)
     {
         QImage image(QUrl(imagePath).toLocalFile());
 
@@ -172,11 +164,19 @@ signals:
 
 private:
     ///
+    /// \brief setUpNewImage - Функция сохранять новое изображение в tmp папке и устанавливает новое изображение в UI.
+    /// \param image - Новое изображение.
+    /// \param imagePath - Путь к новому изображению.
+    /// \param imageEditType - Тип того, как будет обработано изображение в QML.
+    ///
+    void setUpNewImage(const QImage& image, const QString& imagePath, const ImageEditType imageEditType);
+
+    ///
     /// \brief truncate - Функция обрабатывает максимальное значение RGB.
     /// \param value - Значение RGB.
     /// \return Если значение превышает максимальное значение одного из цветов, то функция вернет '255', если же значение меньше, то '0'.
     ///
-    static QRgb truncatePixelValue(const size_t value)
+    [[nodiscard]] QRgb truncatePixelValue(const QRgb value)
     {
         if (value == 0) {
             return 0;
